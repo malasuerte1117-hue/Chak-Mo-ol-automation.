@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>CHAK' MO'OL | Club de Robótica</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loader"></div>
+    <p>Conectando con CHAK' MO'OL Core...</p>
+  </div>
+
+  <section id="login-section" class="auth-section" style="display: none;">
+    <div class="auth-container">
+      <header class="auth-header">
+        <h1 class="logo-title">CHAK' MO'OL</h1>
+        <p class="slogan-main">"U PÁAJTALIL MAAN"</p>
+        <p class="slogan-sub">EL PODER DE IR MÁS ALLÁ</p>
+      </header>
+      <form id="login-form" class="auth-form">
+        <div class="form-group">
+          <label>Usuario</label>
+          <input type="text" id="username" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input type="password" id="password" required autocomplete="current-password">
+        </div>
+        <div id="login-error" class="error-message"></div>
+        <button type="submit" class="btn-primary btn-full">⚡ ACCEDER</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="app-section" class="app-section" style="display: none;">
+    <header class="main-header">
+      <div class="header-left">
+        <button id="menu-toggle" class="menu-btn" aria-label="Menú">☰</button>
+        <div class="brand">
+          <h2>CHAK' MO'OL <span class="badge">PRO</span></h2>
+          <p class="tagline">EL PODER DE IR MÁS ALLÁ</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span id="user-display"></span>
+        <span id="role-badge" class="role-badge"></span>
+        <button id="logout-btn" class="btn-secondary">🚪 Salir</button>
+      </div>
+    </header>
+
+    <aside id="sidebar" class="sidebar">
+      <nav class="nav-menu">
+        <button class="nav-item active" data-view="dashboard">📊 Dashboard</button>
+        <button class="nav-item" data-view="inventario">📦 Inventario</button>
+        <button class="nav-item admin-only" data-view="miembros" hidden>👥 Miembros</button>
+        <button class="nav-item" data-view="bitacora">📝 Bitácora</button>
+        <button class="nav-item admin-only" data-view="prestamos" hidden>🔄 Préstamos</button>
+        <button class="nav-item" data-view="reportes">🚨 Reportes</button>
+      </nav>
+      <div class="sidebar-footer">
+        <p class="eslogan-small">"U PÁAJTALIL MAAN"</p>
+      </div>
+    </aside>
+
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <main id="main-content" class="main-content">
+      
+      <div id="view-dashboard" class="view active">
+        <h2 class="view-title">📈 Panel de Control</h2>
+        <div class="stats-grid">
+          <article class="stat-card"><div class="stat-icon">📦</div><div><span class="stat-value" id="stat-inventory">0</span><span class="stat-label">Inventario</span></div></article>
+          <article class="stat-card"><div class="stat-icon">👥</div><div><span class="stat-value" id="stat-members">0</span><span class="stat-label">Miembros</span></div></article>
+          <article class="stat-card"><div class="stat-icon">🔄</div><div><span class="stat-value" id="stat-loans">0</span><span class="stat-label">Préstamos</span></div></article>
+          <article class="stat-card"><div class="stat-icon">🚨</div><div><span class="stat-value" id="stat-reports">0</span><span class="stat-label">Reportes</span></div></article>
+        </div>
+        
+        <div class="dashboard-activity">
+          <h3>📋 Actividad Reciente</h3>
+          <div class="activity-grid">
+            <div class="activity-column"><h4>📝 Bitácora</h4><ul id="dashboard-bitacora-list" class="activity-list"></ul></div>
+            <div class="activity-column"><h4>🚨 Reportes</h4><ul id="dashboard-reportes-list" class="activity-list"></ul></div>
+          </div>
+        </div>
+
+        <div class="dashboard-activity mt-2">
+          <h3>🔄 Préstamos Recientes</h3>
+          <div class="activity-grid">
+            <div class="activity-column">
+              <h4>📤 Préstamos</h4>
+              <ul id="dashboard-prestamos-list" class="activity-list"></ul>
+            </div>
+            <div class="activity-column">
+              <h4>📥 Devoluciones</h4>
+              <ul id="dashboard-devoluciones-list" class="activity-list"></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-inventario" class="view" hidden>
+        <h2 class="view-title">📦 Gestión de Inventario</h2>
+        <div class="inventory-actions">
+          <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
+          <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Material</th>
+                <th>N° Serie</th>
+                <th>Cant.</th>
+                <th>Funciona</th>
+                <th>Estado</th>
+                <th>Datasheet</th>
+                <th>Comentarios</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-body"></tbody>
+          </table>
+        </div>
+
+        <div id="item-modal" class="modal" hidden>
+          <div class="modal-content">
+            <button class="modal-close" aria-label="Cerrar">&times;</button>
+            <h3 id="modal-title">Equipo</h3>
+            <form id="item-form">
+              <input type="hidden" id="item-id">
+              <div class="form-group">
+                <label>Material *</label>
+                <input type="text" id="item-nombre" required>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>N° Serie</label><input type="text" id="item-serie"></div>
+                <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>¿Funciona?</label>
+                  <select id="item-funciona">
+                    <option value="si">Sí</option>
+                    <option value="no">No</option>
+                    <option value="desconocido">Desconocido</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Estado</label>
+                  <select id="item-estado">
+                    <option value="disponible">Disponible</option>
+                    <option value="prestado">Prestado</option>
+                    <option value="mantenimiento">Mantenimiento</option>
+                    <option value="dañado">Dañado</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Categoría</label>
+                <select id="item-categoria">
+                  <option value="electronica">Electrónica</option>
+                  <option value="mecanica">Mecánica</option>
+                  <option value="sensores">Sensores</option>
+                  <option value="herramientas">Herramientas</option>
+                  <option value="otros">Otros</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>URL Datasheet</label>
+                <input type="url" id="item-datasheet">
+              </div>
+              <div class="form-group">
+                <label>Comentarios</label>
+                <textarea id="item-comentarios"></textarea>
+              </div>
+              <div class="form-group">
+                <label>URL Foto</label>
+                <input type="url" id="item-foto">
+              </div>
+              <div id="item-error" class="error-message"></div>
+              <button type="submit" class="btn-primary btn-full">💾 Guardar</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-bitacora" class="view" hidden>
+        <h2 class="view-title">📝 Bitácora</h2>
+        <form id="bitacora-form" class="form-card">
+          <div class="form-group"><label>Título *</label><input type="text" id="bitacora-titulo" required></div>
+          <div class="form-row">
+            <div class="form-group"><label>Categoría *</label>
+              <select id="bitacora-categoria" required>
+                <option value="mantenimiento">Mantenimiento</option>
+                <option value="desarrollo">Desarrollo</option>
+                <option value="capacitacion">Capacitación</option>
+                <option value="evento">Evento</option>
+                <option value="incidencia">Incidencia</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Actividad *</label><input type="text" id="bitacora-actividad" required></div>
+          </div>
+          <button type="submit" class="btn-primary">📤 Registrar</button>
+        </form>
+        <div class="table-container mt-2">
+          <table class="data-table">
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Título</th><th>Categoría</th><th>Actividad</th><th>Acción</th></tr></thead>
+            <tbody id="bitacora-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-miembros" class="view admin-only" hidden>
+        <h2 class="view-title">👥 Miembros</h2>
+        <form id="miembro-form" class="form-card">
+          <div class="form-row">
+            <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required></div>
+            <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Nombre *</label><input type="text" id="miembro-nombre" required></div>
+            <div class="form-group"><label>Rol *</label><select id="miembro-rol" required><option value="miembro">Miembro</option><option value="administrador">Administrador</option></select></div>
+          </div>
+          <div class="form-group"><label>Área</label><input type="text" id="miembro-area"></div>
+          <button type="submit" class="btn-primary">💾 Guardar</button>
+        </form>
+        <div class="table-container mt-2">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Username</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Acción</th></tr></thead>
+            <tbody id="miembros-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="view-prestamos" class="view admin-only" hidden>
+        <h2 class="view-title">🔄 Préstamos</h2>
+        
+        <form id="prestamo-form" class="form-card">
+          <h3>📋 Nueva Solicitud de Préstamo</h3>
+          
+          <div class="form-group">
+            <label>Items a Prestar *</label>
+            <div id="prestamo-items-container">
+              <div class="prestamo-item-row">
+                <select class="prestamo-item-select" required>
+                  <option value="">Seleccionar item...</option>
+                </select>
+                <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+                <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
+              </div>
+            </div>
+            <button type="button" class="btn-secondary btn-sm" onclick="addPrestamoItem()" style="margin-top: 10px;">+ Agregar otro item</button>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Fecha de Préstamo *</label>
+              <input type="date" id="prestamo-fecha-inicio" required>
+            </div>
+            <div class="form-group">
+              <label>Fecha de Devolución *</label>
+              <input type="date" id="prestamo-fecha-devolucion" required>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Motivo del Préstamo</label>
+            <textarea id="prestamo-motivo" placeholder="Describe el propósito del préstamo..."></textarea>
+          </div>
+          
+          <div id="prestamo-error" class="error-message"></div>
+          <button type="submit" class="btn-primary btn-full">✅ Solicitar Préstamo</button>
+        </form>
+        
+        <div id="prestamos-pendientes-section" class="mt-2" hidden>
+          <h3>⏳ Préstamos Pendientes de Autorización</h3>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Solicitante</th>
+                  <th>Items</th>
+                  <th>Fecha Préstamo</th>
+                  <th>Fecha Devolución</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="prestamos-pendientes-body"></tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div id="mis-prestamos-section" class="mt-2">
+          <h3>📦 <span id="mis-prestamos-title">Mis Préstamos</span></h3>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Items</th>
+                  <th>Fecha Préstamo</th>
+                  <th>Fecha Devolución</th>
+                  <th>Estado</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="prestamos-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="view-reportes" class="view" hidden>
+        <h2 class="view-title">🚨 Reportes</h2>
+        <form id="reporte-form" class="form-card">
+          <h3>Crear Reporte</h3>
+          <div class="form-group"><label>Título *</label><input type="text" id="reporte-titulo" required></div>
+          <div class="form-row">
+            <div class="form-group"><label>Categoría *</label>
+              <select id="reporte-categoria" required>
+                <option value="fallo_tecnico">Fallo Técnico</option>
+                <option value="falta_piezas">Falta Piezas</option>
+                <option value="clima">Clima</option>
+                <option value="seguridad">Seguridad</option>
+                <option value="infraestructura">Infraestructura</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Urgencia *</label>
+              <select id="reporte-urgencia" required>
+                <option value="bajo">🟢 Bajo</option>
+                <option value="medio">🟡 Medio</option>
+                <option value="alto">🔴 Alto</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Descripción *</label><textarea id="reporte-descripcion" required></textarea></div>
+          <button type="submit" class="btn-primary">🚨 Enviar</button>
+        </form>
+        <div id="reportes-list" class="reportes-grid mt-2"></div>
+      </div>
+
+    </main>
+  </section>
+
+  <div id="toast-container"></div>
+  <script src="app.js"></script>
+</body>
+</html>
