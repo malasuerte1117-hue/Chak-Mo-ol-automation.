@@ -53,52 +53,64 @@
     /* Header */
     .main-header { position: sticky; top: 0; background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
     .header-left { display: flex; align-items: center; gap: 16px; }
-    .menu-btn { background: none; border: none; color: var(--text-primary); font-size: 1.6rem; cursor: pointer; display: none; }
+    .menu-btn { background: none; border: none; color: var(--text-primary); font-size: 1.8rem; cursor: pointer; padding: 8px; display: none; z-index: 101; }
     .brand h2 { font-family: var(--font-display); color: var(--cyan-neon); font-size: 1.2rem; }
+    .badge { background: linear-gradient(135deg, var(--gold-accent), #b8962e); color: #000; font-size: 0.65rem; padding: 3px 10px; border-radius: 20px; margin-left: 8px; }
     .header-right { display: flex; align-items: center; gap: 14px; }
     .role-badge { padding: 4px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border: 1px solid var(--border-color); }
-    .role-badge.admin { background: var(--red-alert); border: none; color: #fff; }
+    .role-badge.admin { background: var(--red-alert); border: none; color: #fff; box-shadow: 0 0 12px var(--red-glow); }
 
     /* Sidebar */
-    .sidebar { position: fixed; left: -300px; top: 65px; width: 260px; height: calc(100vh - 65px); background: var(--bg-card); border-right: 1px solid var(--border-color); z-index: 95; transition: var(--transition); display: flex; flex-direction: column; }
+    .sidebar { position: fixed; left: -280px; top: 65px; width: 260px; height: calc(100vh - 65px); background: var(--bg-card); border-right: 1px solid var(--border-color); z-index: 95; transition: left 0.3s ease; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.3); }
     .sidebar.open { left: 0; }
-    .nav-menu { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 8px; }
-    .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: none; border: none; color: var(--text-secondary); border-radius: var(--radius-md); cursor: pointer; text-align: left; min-height: 48px; }
-    .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-    .nav-item.active { background: rgba(0, 212, 255, 0.1); color: var(--cyan-neon); border-left: 3px solid var(--cyan-neon); }
+    .nav-menu { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+    .nav-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: none; border: none; color: var(--text-secondary); border-radius: var(--radius-md); cursor: pointer; text-align: left; min-height: 50px; font-size: 0.95rem; transition: var(--transition); }
+    .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); transform: translateX(4px); }
+    .nav-item.active { background: rgba(0, 212, 255, 0.1); color: var(--cyan-neon); border-left: 3px solid var(--cyan-neon); font-weight: 600; }
+    .sidebar-footer { padding: 20px; border-top: 1px solid var(--border-color); text-align: center; }
+    .eslogan-small { color: var(--gold-accent); font-size: 0.75rem; font-style: italic; }
 
-    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 94; opacity: 0; visibility: hidden; transition: var(--transition); }
+    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 94; opacity: 0; visibility: hidden; transition: all 0.3s ease; backdrop-filter: blur(3px); }
     .sidebar-overlay.active { opacity: 1; visibility: visible; }
 
     /* Main Content */
-    .main-content { padding: 24px; margin-left: 260px; transition: var(--transition); }
+    .main-content { padding: 24px; transition: var(--transition); }
+    
     @media (max-width: 1024px) {
       .menu-btn { display: block; }
-      .sidebar { left: -300px; }
-      .main-content { margin-left: 0; }
+      .sidebar { left: -280px; }
+      .sidebar.open { left: 0; }
+      .main-content { margin-left: 0; padding: 16px; padding-top: 80px; }
+    }
+    
+    @media (min-width: 1025px) {
+      .menu-btn { display: none !important; }
+      .sidebar { left: 0 !important; }
+      .sidebar-overlay { display: none !important; }
+      .main-content { margin-left: 260px; }
     }
 
     .view { display: none; animation: slide-up 0.3s ease; }
     .view.active { display: block; }
-    .view-title { font-family: var(--font-display); color: var(--cyan-neon); margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+    .view-title { font-family: var(--font-display); color: var(--cyan-neon); margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); font-size: 1.6rem; }
 
     /* Stats */
     .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 32px; }
-    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; display: flex; align-items: center; gap: 16px; }
-    .stat-icon { font-size: 2rem; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; display: flex; align-items: center; gap: 16px; transition: var(--transition); }
+    .stat-card:hover { border-color: var(--cyan-neon); transform: translateY(-4px); box-shadow: 0 0 25px var(--cyan-glow); }
+    .stat-icon { font-size: 2rem; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: rgba(0,212,255,0.12); border-radius: var(--radius-sm); }
     .stat-value { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; }
     .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
 
     /* Dashboard Activity & Lists */
     .dashboard-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px; }
-    .dashboard-section h3 { font-family: var(--font-display); margin-bottom: 20px; color: var(--text-secondary); }
+    .dashboard-section h3 { font-family: var(--font-display); margin-bottom: 20px; color: var(--text-secondary); font-size: 1.2rem; }
     
     .activity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     @media (max-width: 768px) { .activity-grid { grid-template-columns: 1fr; } }
     
     .activity-column h4 { color: var(--cyan-neon); margin-bottom: 12px; font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
     .activity-list { list-style: none; max-height: 350px; overflow-y: auto; padding-right: 8px; }
-    /* Scrollbar styling */
     .activity-list::-webkit-scrollbar { width: 6px; }
     .activity-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 
@@ -106,7 +118,7 @@
     .activity-item .time { color: var(--text-muted); font-size: 0.8rem; display: block; margin-bottom: 4px; }
 
     /* Tables */
-    .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
+    .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .data-table { width: 100%; border-collapse: collapse; min-width: 900px; }
     .data-table th { background: var(--bg-secondary); padding: 14px 16px; text-align: left; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; }
     .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
@@ -116,13 +128,14 @@
     .status { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
     .status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
     .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
-    .status-desconocido { background: rgba(255,170,0,0.15); color: var(--warning); }
+    .status-desconocido, .status-prestado { background: rgba(255,170,0,0.15); color: var(--warning); }
+    .status-mantenimiento { background: rgba(0,212,255,0.15); color: var(--cyan-neon); }
 
     /* Reports */
     .reportes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
     .report-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; border-left: 4px solid var(--cyan-neon); transition: var(--transition); }
     .report-card.closed { opacity: 0.5; border-left-color: var(--text-muted); }
-    .report-urgencia { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: #000; }
+    .report-urgencia { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: #000; display: inline-block; }
     .report-urgencia.alto { background: var(--red-alert); color: #fff; }
     .report-urgencia.medio { background: var(--warning); }
     .report-urgencia.bajo { background: var(--success); }
@@ -130,44 +143,59 @@
     /* Forms & Buttons */
     .form-group { margin-bottom: 16px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9rem; }
-    input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; color: var(--text-primary); width: 100%; }
+    @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+    label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9rem; font-weight: 500; }
+    input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; color: var(--text-primary); width: 100%; font-size: 1rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 0 3px var(--cyan-glow); }
     
-    .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-primary { background: var(--cyan-neon); color: #000; }
+    .btn-primary, .btn-secondary { padding: 12px 24px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; min-height: 48px; transition: var(--transition); }
+    .btn-primary { background: linear-gradient(135deg, var(--cyan-neon), #00a3cc); color: #000; box-shadow: 0 4px 20px var(--cyan-glow); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--cyan-glow); }
     .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
-    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-    .btn-danger { color: var(--red-alert); }
-    .btn-full { width: 100%; justify-content: center; }
+    .btn-secondary:hover { background: var(--bg-hover); border-color: var(--cyan-neon); color: var(--cyan-neon); }
+    .btn-sm { padding: 8px 16px; font-size: 0.85rem; min-height: 40px; }
+    .btn-danger { color: var(--red-alert); background: rgba(255,0,64,0.1); border: 1px solid var(--red-alert); }
+    .btn-danger:hover { background: var(--red-alert); color: #fff; }
+    .btn-full { width: 100%; }
+    .mt-2 { margin-top: 16px; }
 
     /* Modal */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
-    .modal.active { display: flex; }
-    .modal-content { background: var(--bg-card); padding: 30px; border-radius: var(--radius-lg); width: 100%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
-    .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); background: none; border: none; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+    .modal.active { display: flex; animation: fade-in 0.2s ease; }
+    @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .modal-content { background: var(--bg-card); padding: 30px; border-radius: var(--radius-lg); width: 100%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; animation: slide-up 0.3s ease; }
+    .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); background: none; border: none; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: var(--transition); }
+    .modal-close:hover { color: var(--red-alert); background: rgba(255,0,64,0.1); }
 
     /* Toast */
-    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border-left: 4px solid var(--cyan-neon); padding: 15px 20px; border-radius: var(--radius-sm); z-index: 2000; animation: slide-right 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+    .toast { position: fixed; bottom: 20px; right: 20px; left: 20px; max-width: 400px; margin: 0 auto; background: var(--bg-card); border-left: 4px solid var(--cyan-neon); padding: 15px 20px; border-radius: var(--radius-sm); z-index: 2000; animation: slide-right 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--red-alert); }
+    .toast.warning { border-left-color: var(--warning); }
 
-    .prestamo-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-    .prestamo-item-row select, .prestamo-item-row input { flex: 1; }
+    .prestamo-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+    .prestamo-item-row select, .prestamo-item-row input { flex: 1; min-width: 120px; }
+    .btn-remove-item { background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--red-alert); border-radius: var(--radius-sm); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transition); }
+    .btn-remove-item:hover { background: rgba(255,0,64,0.1); }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
   <div id="loading-overlay" class="loading-overlay">
     <div class="loader"></div>
-    <p>Conectando...</p>
+    <p>Conectando con CHAK' MO'OL Core...</p>
   </div>
 
   <section id="login-section" class="auth-section" style="display: none;">
     <div class="auth-container">
       <h1 class="logo-title">CHAK' MO'OL</h1>
+      <p style="text-align:center;color:var(--gold-accent);margin-bottom:24px;">"U PÁAJTALIL MAAN"</p>
       <form id="login-form">
-        <div class="form-group"><label>Usuario</label><input type="text" id="username" required></div>
-        <div class="form-group"><label>Contraseña</label><input type="password" id="password" required></div>
+        <div class="form-group"><label>Usuario</label><input type="text" id="username" required autocomplete="username"></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="password" required autocomplete="current-password"></div>
+        <div id="login-error" style="color:var(--red-alert);margin-bottom:12px;font-size:0.9rem;"></div>
         <button type="submit" class="btn-primary btn-full">⚡ ACCEDER</button>
       </form>
     </div>
@@ -176,11 +204,13 @@
   <section id="app-section" style="display: none;">
     <header class="main-header">
       <div class="header-left">
-        <button id="menu-toggle" class="menu-btn">☰</button>
-        <div class="brand"><h2>CHAK' MO'OL <span class="badge">PRO</span></h2></div>
+        <button id="menu-toggle" class="menu-btn" aria-label="Menú">☰</button>
+        <div class="brand">
+          <h2>CHAK' MO'OL <span class="badge">PRO</span></h2>
+        </div>
       </div>
       <div class="header-right">
-        <span id="user-display"></span>
+        <span id="user-display" style="font-weight:500;"></span>
         <span id="role-badge" class="role-badge"></span>
         <button id="logout-btn" class="btn-secondary">🚪 Salir</button>
       </div>
@@ -188,13 +218,16 @@
 
     <aside id="sidebar" class="sidebar">
       <nav class="nav-menu">
-        <button class="nav-item active" data-view="dashboard"> Dashboard</button>
+        <button class="nav-item active" data-view="dashboard">📊 Dashboard</button>
         <button class="nav-item" data-view="inventario">📦 Inventario</button>
         <button class="nav-item admin-only" data-view="miembros" hidden>👥 Miembros</button>
         <button class="nav-item" data-view="bitacora">📝 Bitácora</button>
         <button class="nav-item admin-only" data-view="prestamos" hidden>🔄 Préstamos</button>
         <button class="nav-item" data-view="reportes">🚨 Reportes</button>
       </nav>
+      <div class="sidebar-footer">
+        <p class="eslogan-small">"U PÁAJTALIL MAAN"</p>
+      </div>
     </aside>
 
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
@@ -241,7 +274,7 @@
 
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Gestión de Inventario</h2>
-        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+        <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
           <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
           <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
         </div>
@@ -254,7 +287,7 @@
       </div>
 
       <div id="view-bitacora" class="view" hidden>
-        <h2 class="view-title"> Bitácora</h2>
+        <h2 class="view-title">📝 Bitácora</h2>
         <form id="bitacora-form" class="dashboard-section" style="max-width: 600px;">
           <div class="form-group"><label>Título *</label><input type="text" id="bitacora-titulo" required></div>
           <div class="form-row">
@@ -262,15 +295,17 @@
               <select id="bitacora-categoria">
                 <option value="mantenimiento">Mantenimiento</option>
                 <option value="desarrollo">Desarrollo</option>
+                <option value="capacitacion">Capacitación</option>
                 <option value="evento">Evento</option>
+                <option value="incidencia">Incidencia</option>
               </select>
             </div>
-            <div class="form-group"><label>Actividad</label><input type="text" id="bitacora-actividad" required></div>
+            <div class="form-group"><label>Actividad *</label><input type="text" id="bitacora-actividad" required></div>
           </div>
           <button type="submit" class="btn-primary">📤 Registrar</button>
         </form>
         <div class="table-container mt-2">
-          <table class="data-table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Título</th><th>Acción</th></tr></thead><tbody id="bitacora-body"></tbody></table>
+          <table class="data-table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Título</th><th>Categoría</th><th>Acción</th></tr></thead><tbody id="bitacora-body"></tbody></table>
         </div>
       </div>
 
@@ -291,25 +326,29 @@
       <div id="view-reportes" class="view" hidden>
         <h2 class="view-title">🚨 Reportes</h2>
         <form id="reporte-form" class="dashboard-section" style="max-width: 600px;">
+          <h3 style="margin-bottom:16px;color:var(--cyan-neon);">Crear Reporte</h3>
           <div class="form-group"><label>Título *</label><input type="text" id="reporte-titulo" required></div>
           <div class="form-row">
-            <div class="form-group"><label>Urgencia</label>
+            <div class="form-group"><label>Urgencia *</label>
               <select id="reporte-urgencia">
                 <option value="bajo">🟢 Bajo</option>
                 <option value="medio">🟡 Medio</option>
                 <option value="alto">🔴 Alto</option>
               </select>
             </div>
-            <div class="form-group"><label>Categoría</label>
+            <div class="form-group"><label>Categoría *</label>
               <select id="reporte-categoria">
                 <option value="fallo_tecnico">Fallo Técnico</option>
-                <option value="infraestructura">Infraestructura</option>
+                <option value="falta_piezas">Falta Piezas</option>
+                <option value="clima">Clima</option>
                 <option value="seguridad">Seguridad</option>
+                <option value="infraestructura">Infraestructura</option>
+                <option value="otro">Otro</option>
               </select>
             </div>
           </div>
-          <div class="form-group"><label>Descripción</label><textarea id="reporte-descripcion"></textarea></div>
-          <button type="submit" class="btn-primary">🚨 Enviar</button>
+          <div class="form-group"><label>Descripción *</label><textarea id="reporte-descripcion" rows="3" required></textarea></div>
+          <button type="submit" class="btn-primary">🚨 Enviar Reporte</button>
         </form>
         <div id="reportes-list" class="reportes-grid"></div>
       </div>
@@ -320,14 +359,14 @@
   <!-- MODAL INVENTARIO -->
   <div id="item-modal" class="modal">
     <div class="modal-content">
-      <button class="modal-close">&times;</button>
-      <h3 id="modal-title" style="margin-bottom: 20px;">Equipo</h3>
+      <button class="modal-close" aria-label="Cerrar">&times;</button>
+      <h3 id="modal-title" style="margin-bottom: 20px; color: var(--cyan-neon);">Equipo</h3>
       <form id="item-form">
         <input type="hidden" id="item-id">
         <div class="form-group"><label>Material *</label><input type="text" id="item-nombre" required></div>
         <div class="form-row">
           <div class="form-group"><label>N° Serie</label><input type="text" id="item-serie"></div>
-          <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1"></div>
+          <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1" min="1"></div>
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -344,10 +383,12 @@
             <select id="item-funciona">
               <option value="si">Sí</option>
               <option value="no">No</option>
+              <option value="desconocido">Desconocido</option>
             </select>
           </div>
         </div>
-        <div class="form-group"><label>Comentarios</label><textarea id="item-comentarios"></textarea></div>
+        <div class="form-group"><label>Comentarios</label><textarea id="item-comentarios" rows="2"></textarea></div>
+        <div id="item-error" style="color:var(--red-alert);margin-bottom:12px;font-size:0.9rem;"></div>
         <button type="submit" class="btn-primary btn-full">💾 Guardar</button>
       </form>
     </div>
@@ -364,9 +405,22 @@
     let App = { user: null, isAdmin: false, supabase: null };
 
     document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; }, 800);
-      App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      setTimeout(() => { 
+        const loader = document.getElementById('loading-overlay');
+        if(loader) {
+          loader.style.opacity = '0';
+          loader.style.transition = 'opacity 0.5s';
+          setTimeout(() => loader.style.display = 'none', 500);
+        }
+      }, 800);
+      
+      if (window.supabase) {
+        App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('✅ Supabase conectado');
+      }
+      
       document.getElementById('login-section').style.display = 'flex';
+      document.getElementById('app-section').style.display = 'none';
       setupEvents();
     });
 
@@ -375,47 +429,85 @@
       const sidebar = document.getElementById('sidebar');
       const overlay = document.getElementById('sidebar-overlay');
       
-      const toggleMenu = () => {
+      function toggleMenu() {
         sidebar.classList.toggle('open');
         overlay.classList.toggle('active');
-      };
+        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+      }
       
-      menuToggle?.addEventListener('click', toggleMenu);
+      menuToggle?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+      });
+      
       overlay?.addEventListener('click', toggleMenu);
+      
+      window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) {
+          sidebar.classList.remove('open');
+          overlay.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      });
 
       document.getElementById('login-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const u = document.getElementById('username').value.trim().toLowerCase();
         const p = document.getElementById('password').value;
+        
         const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
-        if (master) loginSuccess(master);
-        else {
+        if (master) {
+          loginSuccess(master);
+          return;
+        }
+        
+        try {
           const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
           if (data) loginSuccess(data);
-          else alert('❌ Credenciales incorrectas');
+          else {
+            document.getElementById('login-error').textContent = '❌ Credenciales incorrectas';
+            showToast('Credenciales incorrectas', 'error');
+          }
+        } catch (err) {
+          document.getElementById('login-error').textContent = 'Error de conexión';
         }
       });
 
       document.getElementById('logout-btn')?.addEventListener('click', () => {
         App.user = null;
+        App.isAdmin = false;
         location.reload();
       });
 
       document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const view = e.currentTarget.dataset.view;
-          if (!view || (e.currentTarget.classList.contains('admin-only') && !App.isAdmin)) return;
+          if (!view) return;
           
-          document.querySelectorAll('.view').forEach(v => v.classList.remove('active') || (v.hidden = true));
+          if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) {
+            showToast('🔐 Solo administradores', 'error');
+            return;
+          }
+          
+          document.querySelectorAll('.view').forEach(v => {
+            v.classList.remove('active');
+            v.hidden = true;
+          });
+          
           document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
           
           const target = document.getElementById('view-' + view);
-          if (target) { target.classList.add('active'); target.hidden = false; }
+          if (target) {
+            target.classList.add('active');
+            target.hidden = false;
+          }
+          
           e.currentTarget.classList.add('active');
           
           if (window.innerWidth < 1024) {
-             sidebar.classList.remove('open');
-             overlay.classList.remove('active');
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
           }
 
           if (view === 'dashboard') loadDashboard();
@@ -427,83 +519,134 @@
         });
       });
 
-      // Forms
       document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        await App.supabase.from('bitacoras').insert([{
-          usuario_id: App.user.id,
-          nombre_usuario: App.user.nombre,
-          titulo: document.getElementById('bitacora-titulo').value,
-          actividad: document.getElementById('bitacora-actividad').value,
-          categoria: document.getElementById('bitacora-categoria').value,
-          fecha: new Date().toISOString()
-        }]);
-        showToast('✅ Bitácora guardada', 'success');
-        e.target.reset();
-        loadBitacora(); loadDashboard();
+        try {
+          await App.supabase.from('bitacoras').insert([{
+            usuario_id: App.user.id,
+            nombre_usuario: App.user.nombre || App.user.username,
+            titulo: document.getElementById('bitacora-titulo').value,
+            actividad: document.getElementById('bitacora-actividad').value,
+            categoria: document.getElementById('bitacora-categoria').value,
+            fecha: new Date().toISOString()
+          }]);
+          showToast('✅ Bitácora guardada', 'success');
+          e.target.reset();
+          loadBitacora();
+          loadDashboard();
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        }
       });
 
       document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        await App.supabase.from('reportes').insert([{
-          usuario_id: App.user.id,
-          nombre_usuario: App.user.nombre,
-          titulo: document.getElementById('reporte-titulo').value,
-          descripcion: document.getElementById('reporte-descripcion').value,
-          categoria: document.getElementById('reporte-categoria').value,
-          urgencia: document.getElementById('reporte-urgencia').value,
-          estado: 'abierto',
-          created_at: new Date().toISOString()
-        }]);
-        showToast('🚨 Reporte creado', 'success');
-        e.target.reset();
-        loadReportes(); loadDashboard();
+        try {
+          await App.supabase.from('reportes').insert([{
+            usuario_id: App.user.id,
+            nombre_usuario: App.user.nombre || App.user.username,
+            titulo: document.getElementById('reporte-titulo').value,
+            descripcion: document.getElementById('reporte-descripcion').value,
+            categoria: document.getElementById('reporte-categoria').value,
+            urgencia: document.getElementById('reporte-urgencia').value,
+            estado: 'abierto',
+            created_at: new Date().toISOString()
+          }]);
+          showToast('🚨 Reporte creado', 'success');
+          e.target.reset();
+          loadReportes();
+          loadDashboard();
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        }
       });
 
-      // Modal logic
       const modal = document.getElementById('item-modal');
       document.querySelector('.modal-close')?.addEventListener('click', () => {
         modal.classList.remove('active');
+      });
+      
+      modal?.addEventListener('click', (e) => {
+        if (e.target === modal) modal.classList.remove('active');
       });
 
       document.getElementById('btn-add-item')?.addEventListener('click', () => {
         document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
         document.getElementById('item-form').reset();
         document.getElementById('item-id').value = '';
+        document.getElementById('item-error').textContent = '';
         modal.classList.add('active');
       });
 
       document.getElementById('item-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const id = document.getElementById('item-id').value;
-        const item = {
-          nombre: document.getElementById('item-nombre').value,
-          numero_serie: document.getElementById('item-serie').value || 'N/A',
-          cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
-          funciona: document.getElementById('item-funciona').value,
-          estado: document.getElementById('item-estado').value,
-          comentarios: document.getElementById('item-comentarios').value
-        };
-        
-        if (id) await App.supabase.from('inventario').update(item).eq('id', id);
-        else {
-          item.id = 'ITEM-' + Date.now();
-          item.created_at = new Date().toISOString();
-          await App.supabase.from('inventario').insert([item]);
+        try {
+          const id = document.getElementById('item-id').value;
+          const item = {
+            nombre: document.getElementById('item-nombre').value,
+            numero_serie: document.getElementById('item-serie').value || 'N/A',
+            cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
+            funciona: document.getElementById('item-funciona').value,
+            estado: document.getElementById('item-estado').value,
+            comentarios: document.getElementById('item-comentarios').value
+          };
+          
+          if (id) {
+            await App.supabase.from('inventario').update(item).eq('id', id);
+            showToast('✅ Actualizado', 'success');
+          } else {
+            const cleanName = item.nombre.substring(0, 10).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
+            item.id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
+            item.created_at = new Date().toISOString();
+            await App.supabase.from('inventario').insert([item]);
+            showToast('✅ Creado', 'success');
+          }
+          
+          modal.classList.remove('active');
+          loadInventory();
+        } catch (err) {
+          document.getElementById('item-error').textContent = 'Error: ' + err.message;
+          showToast('Error: ' + err.message, 'error');
         }
-        
-        modal.classList.remove('active');
-        loadInventory();
-        showToast('✅ Guardado', 'success');
+      });
+      
+      document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
+        try {
+          const { data } = await App.supabase.from('inventario').select('*');
+          if (!data || data.length === 0) {
+            showToast('Sin datos para exportar', 'warning');
+            return;
+          }
+          
+          const headers = Object.keys(data[0]);
+          let csv = headers.join(',') + '\n';
+          data.forEach(row => {
+            csv += headers.map(h => {
+              const val = row[h];
+              return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+            }).join(',') + '\n';
+          });
+          
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'Inventario_' + new Date().toISOString().slice(0,10) + '.csv';
+          a.click();
+          showToast('📦 Exportado', 'success');
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        }
       });
     }
 
     function loginSuccess(user) {
       App.user = user;
       App.isAdmin = user.rol === 'administrador';
+      
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('app-section').style.display = 'block';
-      document.getElementById('user-display').textContent = user.nombre.split(' ')[0];
+      document.getElementById('user-display').textContent = (user.nombre || user.username).split(' ')[0];
       
       const badge = document.getElementById('role-badge');
       badge.textContent = user.rol;
@@ -513,199 +656,302 @@
       loadDashboard();
     }
 
-    // === DASHBOARD LOGIC ===
     async function loadDashboard() {
       if (!App.supabase) return;
+      
       try {
         const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
         const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
         const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
-        const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente']);
+        const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
         
         document.getElementById('stat-inventory').textContent = inv || 0;
         document.getElementById('stat-members').textContent = mem || 0;
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
-
-        // Bitácora
-        const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+      } catch (err) {
+        console.error('Error stats:', err);
+      }
+      
+      try {
+        const {  bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
         const bitList = document.getElementById('dashboard-bitacora-list');
-        bitList.innerHTML = bits?.length ? bits.map(b => `
-          <li class="activity-item">
-            <span class="time">${new Date(b.fecha).toLocaleString()}</span>
-            <strong>${b.titulo}</strong>
-            <div style="font-size:0.8rem; color:#888">${b.actividad?.substring(0,50)}...</div>
-          </li>`).join('') : '<li style="padding:10px;color:#666">Sin registros</li>';
-
-        // Reportes
+        if (bitList) {
+          bitList.innerHTML = bits && bits.length > 0 ? bits.map(b => `
+            <li class="activity-item">
+              <span class="time">${new Date(b.fecha).toLocaleString()}</span>
+              <strong>${b.titulo || 'Sin título'}</strong>
+              <div style="font-size:0.85rem;color:#888;margin-top:4px">${(b.actividad||'').substring(0,60)}${(b.actividad||'').length > 60 ? '...' : ''}</div>
+            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin registros</li>';
+        }
+      } catch (err) {
+        console.error('Error bitácoras:', err);
+      }
+      
+      try {
         const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
-        repList.innerHTML = reps?.length ? reps.map(r => `
-          <li class="activity-item" style="border-left-color: ${colors[r.urgencia] || '#00d4ff'}">
-            <span class="time">${new Date(r.created_at).toLocaleString()}</span>
-            <strong style="color:${colors[r.urgencia]}">[${r.urgencia.toUpperCase()}]</strong>
-            <span>${r.titulo}</span>
-            ${r.estado === 'cerrado' ? '<span style="color:#28a745;float:right">✓ Cerrado</span>' : ''}
-          </li>`).join('') : '<li style="padding:10px;color:#666">Sin reportes</li>';
-
-        // Préstamos
-        const { data: prestamos } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
-        const presList = document.getElementById('dashboard-prestamos-list');
-        presList.innerHTML = prestamos?.length ? prestamos.map(p => {
-           const items = p.items?.map(i => `${i.nombre}`).join(', ');
-           return `<li class="activity-item"><span class="time">📤 ${p.nombre_solicitante}</span><div style="font-size:0.85rem">${items}</div></li>`;
-        }).join('') : '<li style="padding:10px;color:#666">Sin préstamos activos</li>';
-
-        // Devoluciones
-        const { data: devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
-        const devList = document.getElementById('dashboard-devoluciones-list');
-        devList.innerHTML = devs?.length ? devs.map(d => {
-           const items = d.items?.map(i => `${i.nombre}`).join(', ');
-           return `<li class="activity-item"><span class="time">📥 ${d.nombre_solicitante}</span><div style="font-size:0.85rem">${items}</div><small style="color:#28a745">✓ Devuelto</small></li>`;
-        }).join('') : '<li style="padding:10px;color:#666">Sin devoluciones recientes</li>';
-
+        if (repList) {
+          repList.innerHTML = reps && reps.length > 0 ? reps.map(r => `
+            <li class="activity-item" style="border-left-color:${colors[r.urgencia] || '#00d4ff'}">
+              <span class="time">${new Date(r.created_at).toLocaleString()}</span>
+              <strong style="color:${colors[r.urgencia] || '#00d4ff'}">[${(r.urgencia||'N/A').toUpperCase()}]</strong>
+              <span style="color:#ccc"> ${r.titulo || 'Sin título'}</span>
+              ${r.estado === 'cerrado' ? '<span style="color:#28a745;float:right;font-size:0.8rem">✓ Cerrado</span>' : ''}
+            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin reportes</li>';
+        }
       } catch (err) {
-        console.error("Error Dashboard:", err);
+        console.error('Error reportes:', err);
+      }
+      
+      try {
+        const {  prestamos } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
+        const presList = document.getElementById('dashboard-prestamos-list');
+        if (presList) {
+          presList.innerHTML = prestamos && prestamos.length > 0 ? prestamos.map(p => {
+            const items = p.items ? p.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
+            return `<li class="activity-item">
+              <span class="time">📤 ${p.nombre_solicitante || 'Desconocido'}</span>
+              <div style="font-size:0.85rem;margin-top:4px">${items}</div>
+              <small style="color:#00cc66;display:block;margin-top:4px">Devolución: ${new Date(p.fecha_devolucion).toLocaleDateString()}</small>
+            </li>`;
+          }).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin préstamos activos</li>';
+        }
+      } catch (err) {
+        console.error('Error préstamos:', err);
+      }
+      
+      try {
+        const {  devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
+        const devList = document.getElementById('dashboard-devoluciones-list');
+        if (devList) {
+          devList.innerHTML = devs && devs.length > 0 ? devs.map(d => {
+            const items = d.items ? d.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
+            return `<li class="activity-item">
+              <span class="time">📥 ${d.nombre_solicitante || 'Desconocido'}</span>
+              <div style="font-size:0.85rem;margin-top:4px">${items}</div>
+              <small style="color:#28a745;display:block;margin-top:4px">✓ Devuelto el ${new Date(d.fecha_confirmacion).toLocaleDateString()}</small>
+            </li>`;
+          }).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones recientes</li>';
+        }
+      } catch (err) {
+        console.error('Error devoluciones:', err);
       }
     }
 
     async function loadReportes() {
       if (!App.supabase) return;
-      const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
-      const container = document.getElementById('reportes-list');
-      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
-      
-      container.innerHTML = data?.map(r => `
-        <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
-          <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-            <span class="report-urgencia" style="background:${colors[r.urgencia] || '#fff'}">${r.urgencia.toUpperCase()}</span>
-            <span style="font-size:0.8rem; color:#888; text-transform:uppercase">${r.estado}</span>
-          </div>
-          <h4 style="margin-bottom:8px;">${r.titulo}</h4>
-          <p style="font-size:0.9rem; color:#b0b0c0; margin-bottom:10px;">${r.descripcion}</p>
-          <div style="display:flex; align-items:center; justify-content:space-between;">
-            <small style="color:#666"> ${r.nombre_usuario}</small>
-            ${App.isAdmin && r.estado !== 'cerrado' ? 
-              `<div style="display:flex; gap:5px;">
-                <button class="btn-sm btn-primary" onclick="closeReport('${r.id}')">✅ Cerrar</button>
-                <button class="btn-sm btn-danger" onclick="deleteReport('${r.id}')">🗑️ Borrar</button>
-              </div>` : ''}
-          </div>
-        </div>
-      `).join('') || '<p>Sin reportes</p>';
+      try {
+        const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
+        const container = document.getElementById('reportes-list');
+        const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
+        
+        if (container) {
+          container.innerHTML = data && data.length > 0 ? data.map(r => `
+            <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                <span class="report-urgencia" style="background:${colors[r.urgencia] || '#fff'}">${(r.urgencia||'N/A').toUpperCase()}</span>
+                <span style="font-size:0.8rem;color:#888;text-transform:uppercase">${r.estado || 'abierto'}</span>
+              </div>
+              <h4 style="margin-bottom:8px;color:var(--text-primary)">${r.titulo || 'Sin título'}</h4>
+              <p style="font-size:0.9rem;color:#b0b0c0;margin-bottom:12px;line-height:1.5">${r.descripcion || 'Sin descripción'}</p>
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                <small style="color:#666">👤 ${r.nombre_usuario || 'Desconocido'}</small>
+                <small style="color:#666">📁 ${r.categoria || 'General'}</small>
+              </div>
+              ${App.isAdmin && r.estado !== 'cerrado' ? `
+                <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+                  <button class="btn-sm btn-primary" onclick="closeReport('${r.id}')">✅ Cerrar</button>
+                  <button class="btn-sm btn-danger" onclick="deleteReport('${r.id}')">🗑️ Eliminar</button>
+                </div>` : ''}
+            </div>
+          `).join('') : '<p style="text-align:center;color:#666;padding:40px;">Sin reportes</p>';
+        }
+      } catch (err) {
+        console.error('Error loadReportes:', err);
+      }
     }
 
     async function loadBitacora() {
       if (!App.supabase) return;
-      const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
-      document.getElementById('bitacora-body').innerHTML = data?.map(b => `
-        <tr>
-          <td>${new Date(b.fecha).toLocaleString()}</td>
-          <td>${b.nombre_usuario}</td>
-          <td>${b.titulo}</td>
-          <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
-        </tr>`).join('') || '<tr><td colspan="4">Sin registros</td></tr>';
+      try {
+        const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
+        const tbody = document.getElementById('bitacora-body');
+        if (tbody) {
+          tbody.innerHTML = data && data.length > 0 ? data.map(b => `
+            <tr>
+              <td>${new Date(b.fecha).toLocaleString()}</td>
+              <td>${b.nombre_usuario || 'Desconocido'}</td>
+              <td>${b.titulo || 'Sin título'}</td>
+              <td>${b.categoria || '-'}</td>
+              <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+            </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+        }
+      } catch (err) {
+        console.error('Error loadBitacora:', err);
+      }
     }
 
     async function loadInventory() {
       if (!App.supabase) return;
-      const { data } = await App.supabase.from('inventario').select('*');
-      document.getElementById('inventory-body').innerHTML = data?.map(i => `
-        <tr>
-          <td><code>${i.id}</code></td>
-          <td>${i.nombre}</td>
-          <td>${i.numero_serie}</td>
-          <td>${i.cantidad}</td>
-          <td><span class="status status-${i.estado}">${i.estado}</span></td>
-          <td>
-            <button class="btn-sm btn-primary" onclick="editItem('${i.id}')">✏️</button>
-            ${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteItem('${i.id}')">🗑️</button>` : ''}
-          </td>
-        </tr>`).join('') || '<tr><td colspan="6">Sin registros</td></tr>';
+      try {
+        const { data } = await App.supabase.from('inventario').select('*');
+        const tbody = document.getElementById('inventory-body');
+        if (tbody) {
+          tbody.innerHTML = data && data.length > 0 ? data.map(i => `
+            <tr>
+              <td><code>${i.id || 'N/A'}</code></td>
+              <td>${i.nombre || 'Sin nombre'}</td>
+              <td>${i.numero_serie || 'N/A'}</td>
+              <td>${i.cantidad || 0}</td>
+              <td><span class="status status-${i.estado || 'disponible'}">${i.estado || 'disponible'}</span></td>
+              <td>
+                <button class="btn-sm btn-primary" onclick="editItem('${i.id}')">✏️</button>
+                ${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteItem('${i.id}')" style="margin-left:4px;">🗑️</button>` : ''}
+              </td>
+            </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+        }
+      } catch (err) {
+        console.error('Error loadInventory:', err);
+      }
     }
 
     async function loadMembers() {
-      if (!App.supabase) return;
-      const { data } = await App.supabase.from('usuarios').select('*');
-      document.getElementById('miembros-body').innerHTML = data?.map(m => `
-        <tr>
-          <td>@${m.username}</td>
-          <td>${m.nombre_completo}</td>
-          <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${m.rol}</span></td>
-          <td>${m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>` : '🔒'}</td>
-        </tr>`).join('') || '<tr><td colspan="4">Sin registros</td></tr>';
+      if (!App.supabase || !App.isAdmin) return;
+      try {
+        const { data } = await App.supabase.from('usuarios').select('*').order('username');
+        const tbody = document.getElementById('miembros-body');
+        if (tbody) {
+          tbody.innerHTML = data && data.length > 0 ? data.map(m => `
+            <tr>
+              <td>@${m.username || 'N/A'}</td>
+              <td>${m.nombre_completo || m.nombre || '-'}</td>
+              <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${m.rol || 'miembro'}</span></td>
+              <td>${m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>` : '🔒'}</td>
+            </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+        }
+      } catch (err) {
+        console.error('Error loadMembers:', err);
+      }
     }
 
     async function loadPrestamos() {
-      if (!App.supabase) return;
-      const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
-      document.getElementById('prestamos-body').innerHTML = data?.map(l => {
-        const items = l.items?.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-        return `<tr>
-          <td>${l.id}</td>
-          <td>${l.nombre_solicitante}</td>
-          <td>${items}</td>
-          <td><span class="status status-${l.estado}">${l.estado}</span></td>
-          <td>${l.estado === 'pendiente' ? `<button class="btn-sm btn-primary" onclick="authorizeLoan('${l.id}')">✅</button>` : '-'}</td>
-        </tr>`;
-      }).join('') || '<tr><td colspan="5">Sin registros</td></tr>';
+      if (!App.supabase || !App.isAdmin) return;
+      try {
+        const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
+        const tbody = document.getElementById('prestamos-body');
+        if (tbody) {
+          tbody.innerHTML = data && data.length > 0 ? data.map(l => {
+            const items = l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
+            return `<tr>
+              <td><code>${l.id || 'N/A'}</code></td>
+              <td>${l.nombre_solicitante || 'Desconocido'}</td>
+              <td>${items}</td>
+              <td><span class="status status-${l.estado || 'pendiente'}">${l.estado || 'pendiente'}</span></td>
+              <td>${l.estado === 'pendiente' ? `<button class="btn-sm btn-primary" onclick="authorizeLoan('${l.id}')">✅</button>` : '-'}</td>
+            </tr>`;
+          }).join('') : '<tr><td colspan="5" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+        }
+      } catch (err) {
+        console.error('Error loadPrestamos:', err);
+      }
     }
 
-    // === ACCIONES ===
     window.deleteReport = async (id) => {
       if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
-      if (confirm('¿Eliminar reporte permanentemente?')) {
+      if (!confirm('¿Eliminar este reporte permanentemente?')) return;
+      try {
         await App.supabase.from('reportes').delete().eq('id', id);
-        showToast('️ Reporte eliminado', 'success');
-        loadReportes(); loadDashboard();
+        showToast('🗑️ Reporte eliminado', 'success');
+        loadReportes();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
       }
     };
 
     window.deleteBitacora = async (id) => {
-      if (confirm('¿Eliminar?')) {
+      if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
+      if (!confirm('¿Eliminar esta bitácora?')) return;
+      try {
         await App.supabase.from('bitacoras').delete().eq('id', id);
-        loadBitacora(); loadDashboard();
+        showToast('🗑️ Eliminada', 'success');
+        loadBitacora();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
       }
     };
 
     window.closeReport = async (id) => {
-      await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
-      loadReportes(); loadDashboard();
+      try {
+        await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
+        showToast('✅ Reporte cerrado', 'success');
+        loadReportes();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     };
 
     window.editItem = async (id) => {
-      const { data } = await App.supabase.from('inventario').select('*').eq('id', id).single();
-      if (data) {
+      try {
+        const { data, error } = await App.supabase.from('inventario').select('*').eq('id', id).single();
+        if (error || !data) {
+          showToast('Item no encontrado', 'error');
+          return;
+        }
+        
+        const modal = document.getElementById('item-modal');
         document.getElementById('modal-title').textContent = '✏️ Editar: ' + data.nombre;
         document.getElementById('item-id').value = data.id;
-        document.getElementById('item-nombre').value = data.nombre;
-        document.getElementById('item-serie').value = data.numero_serie;
-        document.getElementById('item-cantidad').value = data.cantidad;
-        document.getElementById('item-funciona').value = data.funciona;
-        document.getElementById('item-estado').value = data.estado;
+        document.getElementById('item-nombre').value = data.nombre || '';
+        document.getElementById('item-serie').value = data.numero_serie || '';
+        document.getElementById('item-cantidad').value = data.cantidad || 1;
+        document.getElementById('item-funciona').value = data.funciona || 'desconocido';
+        document.getElementById('item-estado').value = data.estado || 'disponible';
         document.getElementById('item-comentarios').value = data.comentarios || '';
-        document.getElementById('item-modal').classList.add('active');
+        document.getElementById('item-error').textContent = '';
+        
+        if (modal) modal.classList.add('active');
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
       }
     };
 
     window.deleteItem = async (id) => {
-      if (confirm('¿Eliminar?')) {
+      if (!confirm('¿Eliminar este item?')) return;
+      try {
         await App.supabase.from('inventario').delete().eq('id', id);
+        showToast('🗑️ Eliminado', 'success');
         loadInventory();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
       }
     };
     
-    window.deleteMember = async (u) => {
-      if (confirm('¿Eliminar?')) {
-        await App.supabase.from('usuarios').delete().eq('username', u);
+    window.deleteMember = async (username) => {
+      if (!confirm(`¿Eliminar a ${username}?`)) return;
+      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins principales', 'error');
+      try {
+        await App.supabase.from('usuarios').delete().eq('username', username);
+        showToast('🗑️ Eliminado', 'success');
         loadMembers();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
       }
     };
 
     window.authorizeLoan = async (id) => {
-      await App.supabase.from('prestamos').update({ estado: 'autorizado' }).eq('id', id);
-      loadPrestamos(); loadDashboard();
+      try {
+        await App.supabase.from('prestamos').update({ estado: 'autorizado', autorizado_por: App.user.id }).eq('id', id);
+        showToast('✅ Préstamo autorizado', 'success');
+        loadPrestamos();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     };
 
     function showToast(msg, type = 'info') {
@@ -713,7 +959,11 @@
       d.className = `toast ${type}`;
       d.textContent = msg;
       document.body.appendChild(d);
-      setTimeout(() => d.remove(), 3000);
+      setTimeout(() => {
+        d.style.opacity = '0';
+        d.style.transform = 'translateY(20px)';
+        setTimeout(() => d.remove(), 300);
+      }, 3000);
     }
   </script>
 </body>
