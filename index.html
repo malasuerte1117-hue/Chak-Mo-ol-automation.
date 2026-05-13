@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>CHAK' MO'OL | Club de Robótica</title>
   
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Cargar Supabase primero -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -15,6 +15,7 @@
   <div id="loading-overlay" class="loading-overlay">
     <div class="loader"></div>
     <p>Conectando con CHAK' MO'OL Core...</p>
+    <p id="loading-status" style="font-size: 0.8rem; margin-top: 10px; color: #666;">Inicializando...</p>
   </div>
 
   <section id="login-section" class="auth-section" style="display: none;">
@@ -353,6 +354,660 @@
   </section>
 
   <div id="toast-container"></div>
-  <script src="app.js"></script>
+  
+  <!-- Script inline para asegurar que cargue -->
+  <script>
+    // CONFIGURACIÓN
+    const SUPABASE_URL = 'https://wmoejlgebchqtchzopuf.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtb2VqbGdlYmNocXRjaHpvcHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Njg0MjksImV4cCI6MjA5MzA0NDQyOX0.lK3BKNmCHlMIDtLWOAwsyvuWNMvIcgQvzUH0IjYZ9y4';
+
+    const ADMIN_USERS = [
+      { username: 'luis', password: 'LECR1123', nombre: 'Luis Enrique Canul Rosado', rol: 'administrador', id: 1 },
+      { username: 'sixto', password: 'sixto2026', nombre: 'Sixto', rol: 'administrador', id: 2 }
+    ];
+
+    let App = { user: null, isAdmin: false, supabase: null };
+
+    // Actualizar estado de carga
+    function updateLoadingStatus(msg) {
+      const statusEl = document.getElementById('loading-status');
+      if (statusEl) statusEl.textContent = msg;
+    }
+
+    // Esperar a que el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('✅ DOM cargado');
+      updateLoadingStatus('Cargando librerías...');
+      
+      // Verificar si Supabase está disponible
+      if (typeof window.supabase === 'undefined') {
+        console.error('❌ Supabase no está cargado');
+        updateLoadingStatus('Error: No se pudo cargar Supabase');
+        setTimeout(() => {
+          alert('Error de conexión. Recarga la página.');
+        }, 2000);
+        return;
+      }
+      
+      updateLoadingStatus('Conectando a base de datos...');
+      
+      try {
+        App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        console.log('✅ Supabase conectado');
+        updateLoadingStatus('Iniciando aplicación...');
+        
+        // Ocultar loader después de 1 segundo
+        setTimeout(() => {
+          const loader = document.getElementById('loading-overlay');
+          if (loader) {
+            loader.style.opacity = '0';
+            loader.style.transition = 'opacity 0.5s';
+            setTimeout(() => {
+              loader.style.display = 'none';
+            }, 500);
+          }
+          
+          // Mostrar login
+          document.getElementById('login-section').style.display = 'flex';
+          document.getElementById('app-section').style.display = 'none';
+          
+          // Configurar eventos
+          setupEvents();
+          console.log('✅ Aplicación lista');
+        }, 1000);
+        
+      } catch (error) {
+        console.error('❌ Error al inicializar:', error);
+        updateLoadingStatus('Error: ' + error.message);
+      }
+    });
+
+    function setupEvents() {
+      // MENÚ HAMBURGUESA
+      const menuToggle = document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      
+      function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        sidebarOverlay.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+      }
+      
+      function closeSidebar() {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+      
+      if (menuToggle) {
+        menuToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleSidebar();
+        });
+      }
+      
+      if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', closeSidebar);
+      }
+
+      // LOGIN
+      const loginForm = document.getElementById('login-form');
+      if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const u = document.getElementById('username').value.trim().toLowerCase();
+          const p = document.getElementById('password').value;
+          
+          // Verificar admins locales
+          const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
+          if (master) {
+            loginSuccess(master);
+            return;
+          }
+          
+          // Buscar en base de datos
+          try {
+            const { data, error } = await App.supabase
+              .from('usuarios')
+              .select('*')
+              .eq('username', u)
+              .eq('password', p)
+              .single();
+              
+            if (error || !data) {
+              document.getElementById('login-error').textContent = '❌ Credenciales incorrectas';
+              showToast('Credenciales incorrectas', 'error');
+            } else {
+              loginSuccess(data);
+            }
+          } catch (err) {
+            console.error('Error login:', err);
+            document.getElementById('login-error').textContent = 'Error de conexión';
+          }
+        });
+      }
+      
+      // LOGOUT
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          App.user = null;
+          App.isAdmin = false;
+          document.getElementById('app-section').style.display = 'none';
+          document.getElementById('login-section').style.display = 'flex';
+          closeSidebar();
+        });
+      }
+      
+      // NAVEGACIÓN
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const view = e.currentTarget.dataset.view;
+          if (!view) return;
+          
+          if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) {
+            showToast('🔐 Solo administradores', 'error');
+            return;
+          }
+          
+          // Cambiar vista
+          document.querySelectorAll('.view').forEach(v => { 
+            v.classList.remove('active'); 
+            v.hidden = true; 
+          });
+          document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+          
+          const target = document.getElementById('view-' + view);
+          if (target) { 
+            target.classList.add('active'); 
+            target.hidden = false; 
+          }
+          e.currentTarget.classList.add('active');
+          
+          // Cargar datos
+          if (view === 'dashboard') loadDashboard();
+          if (view === 'inventario') loadInventory();
+          if (view === 'bitacora') loadBitacora();
+          if (view === 'reportes') loadReportes();
+          if (view === 'miembros' && App.isAdmin) loadMembers();
+          if (view === 'prestamos' && App.isAdmin) loadPrestamos();
+          
+          if (window.innerWidth < 1024) {
+            closeSidebar();
+          }
+        });
+      });
+      
+      // Más eventos... (bitácora, reportes, etc.)
+      setupFormEvents();
+    }
+
+    function setupFormEvents() {
+      // Bitácora
+      const bitacoraForm = document.getElementById('bitacora-form');
+      if (bitacoraForm) {
+        bitacoraForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          try {
+            const { error } = await App.supabase.from('bitacoras').insert([{
+              usuario_id: App.user.id,
+              nombre_usuario: App.user.nombre || App.user.username,
+              titulo: document.getElementById('bitacora-titulo').value,
+              actividad: document.getElementById('bitacora-actividad').value,
+              categoria: document.getElementById('bitacora-categoria').value,
+              fecha: new Date().toISOString()
+            }]);
+            if (error) throw error;
+            showToast('✅ Bitácora guardada', 'success');
+            e.target.reset();
+            loadBitacora();
+            loadDashboard();
+          } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+          }
+        });
+      }
+      
+      // Reportes
+      const reporteForm = document.getElementById('reporte-form');
+      if (reporteForm) {
+        reporteForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          try {
+            const { error } = await App.supabase.from('reportes').insert([{
+              usuario_id: App.user.id,
+              nombre_usuario: App.user.nombre || App.user.username,
+              titulo: document.getElementById('reporte-titulo').value,
+              descripcion: document.getElementById('reporte-descripcion').value,
+              categoria: document.getElementById('reporte-categoria').value,
+              urgencia: document.getElementById('reporte-urgencia').value,
+              estado: 'abierto',
+              created_at: new Date().toISOString()
+            }]);
+            if (error) throw error;
+            showToast('🚨 Reporte creado', 'success');
+            e.target.reset();
+            loadReportes();
+            loadDashboard();
+          } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+          }
+        });
+      }
+      
+      // Modal close
+      const modalClose = document.querySelector('.modal-close');
+      const modal = document.getElementById('item-modal');
+      if (modalClose && modal) {
+        modalClose.addEventListener('click', () => {
+          modal.classList.add('hidden');
+          modal.classList.remove('active');
+        });
+      }
+      
+      // Add item button
+      const btnAddItem = document.getElementById('btn-add-item');
+      if (btnAddItem) {
+        btnAddItem.addEventListener('click', () => {
+          if (modal) {
+            document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
+            document.getElementById('item-form').reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('item-error').textContent = '';
+            modal.classList.remove('hidden');
+            modal.classList.add('active');
+          }
+        });
+      }
+      
+      // Item form
+      const itemForm = document.getElementById('item-form');
+      if (itemForm) {
+        itemForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          try {
+            let id = document.getElementById('item-id').value;
+            
+            const item = {
+              nombre: document.getElementById('item-nombre').value,
+              numero_serie: document.getElementById('item-serie').value || 'N/A',
+              cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
+              funciona: document.getElementById('item-funciona').value,
+              estado: document.getElementById('item-estado').value,
+              categoria: document.getElementById('item-categoria').value,
+              datasheet: document.getElementById('item-datasheet').value,
+              comentarios: document.getElementById('item-comentarios').value,
+              foto_url: document.getElementById('item-foto').value
+            };
+            
+            if (id) {
+              await App.supabase.from('inventario').update(item).eq('id', id);
+              showToast('✅ Actualizado', 'success');
+            } else {
+              const cleanName = item.nombre.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
+              id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
+              item.id = id;
+              item.created_at = new Date().toISOString();
+              
+              const { error } = await App.supabase.from('inventario').insert([item]);
+              if (error) throw error;
+              showToast('✅ Creado', 'success');
+            }
+            
+            if (modal) {
+              modal.classList.add('hidden');
+              modal.classList.remove('active');
+            }
+            loadInventory();
+          } catch (err) {
+            document.getElementById('item-error').textContent = 'Error: ' + err.message;
+            showToast('Error: ' + err.message, 'error');
+          }
+        });
+      }
+    }
+
+    function loginSuccess(user) {
+      App.user = user;
+      App.isAdmin = user.rol === 'administrador';
+      
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('app-section').style.display = 'block';
+      document.getElementById('user-display').textContent = (user.nombre || user.username).split(' ')[0];
+      
+      const badge = document.getElementById('role-badge');
+      if (badge) {
+        badge.textContent = user.rol;
+        badge.className = App.isAdmin ? 'role-badge admin' : 'role-badge';
+      }
+      
+      updateAdminUI();
+      loadDashboard();
+      
+      document.querySelectorAll('.view').forEach(v => { 
+        v.classList.remove('active'); 
+        v.hidden = true; 
+      });
+      const dashboard = document.getElementById('view-dashboard');
+      if (dashboard) { 
+        dashboard.classList.add('active'); 
+        dashboard.hidden = false; 
+      }
+    }
+
+    function updateAdminUI() {
+      document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
+    }
+
+    // Funciones de carga de datos
+    async function loadDashboard() {
+      if (!App.supabase) return;
+      
+      try {
+        const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
+        const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
+        const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+        
+        const invEl = document.getElementById('stat-inventory');
+        const memEl = document.getElementById('stat-members');
+        const repEl = document.getElementById('stat-reports');
+        
+        if (invEl) invEl.textContent = inv || 0;
+        if (memEl) memEl.textContent = mem || 0;
+        if (repEl) repEl.textContent = rep || 0;
+      } catch (err) {
+        console.error('Error stats:', err);
+      }
+    }
+
+    async function loadBitacora() {
+      if (!App.supabase) return;
+      try {
+        const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(10);
+        const tbody = document.getElementById('bitacora-body');
+        if (!tbody) return;
+        
+        if (data && data.length > 0) {
+          tbody.innerHTML = data.map(b => `
+            <tr>
+              <td>${new Date(b.fecha).toLocaleString()}</td>
+              <td>${b.nombre_usuario}</td>
+              <td>${b.titulo}</td>
+              <td>${b.categoria}</td>
+              <td>${b.actividad}</td>
+              <td>${App.isAdmin ? `<button class="btn-sm" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
+        }
+      } catch (err) {
+        console.error('Error loadBitacora:', err);
+      }
+    }
+
+    async function loadReportes() {
+      if (!App.supabase) return;
+      try {
+        const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
+        const container = document.getElementById('reportes-list');
+        if (!container) return;
+        
+        const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
+        
+        if (data && data.length > 0) {
+          container.innerHTML = data.map(r => `
+            <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
+              <div class="report-header">
+                <span class="report-urgencia" style="background:${colors[r.urgencia]}">${r.urgencia.toUpperCase()}</span>
+                <span class="status status-${r.estado}">${r.estado}</span>
+              </div>
+              <h4>${r.titulo}</h4>
+              <p>${r.descripcion}</p>
+              <div class="report-meta">
+                <span>👤 ${r.nombre_usuario}</span>
+                <span>📁 ${r.categoria}</span>
+              </div>
+              ${App.isAdmin && r.estado !== 'cerrado' ? 
+                `<div class="report-actions"><button class="btn-primary btn-sm" onclick="closeReport('${r.id}')">✅ Cerrar</button></div>` : ''}
+            </div>
+          `).join('');
+        } else {
+          container.innerHTML = '<p>Sin reportes</p>';
+        }
+      } catch (err) {
+        console.error('Error loadReportes:', err);
+      }
+    }
+
+    async function loadInventory() {
+      if (!App.supabase) return;
+      try {
+        const { data } = await App.supabase.from('inventario').select('*');
+        const tbody = document.getElementById('inventory-body');
+        if (!tbody) return;
+        
+        if (data && data.length > 0) {
+          tbody.innerHTML = data.map(i => `
+            <tr>
+              <td><code>${i.id}</code></td>
+              <td>${i.nombre}</td>
+              <td>${i.numero_serie || 'N/A'}</td>
+              <td>${i.cantidad}</td>
+              <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
+              <td><span class="status status-${i.estado}">${i.estado}</span></td>
+              <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄 Ver</a>` : '-'}</td>
+              <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬 Ver</button>` : '-'}</td>
+              <td>
+                <button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>
+                ${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="10">Sin registros</td></tr>';
+        }
+      } catch (err) {
+        console.error('Error loadInventory:', err);
+      }
+    }
+
+    async function loadMembers() {
+      if (!App.supabase) return;
+      if (!App.isAdmin) return;
+      
+      try {
+        const { data } = await App.supabase.from('usuarios').select('*').order('username');
+        const tbody = document.getElementById('miembros-body');
+        if (!tbody) return;
+        
+        if (data && data.length > 0) {
+          tbody.innerHTML = data.map(m => `
+            <tr>
+              <td>${m.id}</td>
+              <td>@${m.username}</td>
+              <td>${m.nombre_completo || '-'}</td>
+              <td><span class="role-badge ${m.rol === 'administrador' ? 'admin' : ''}">${m.rol}</span></td>
+              <td>${m.area || '-'}</td>
+              <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? 
+                `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : '🔒'}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
+        }
+      } catch (err) {
+        console.error('Error loadMembers:', err);
+      }
+    }
+
+    async function loadPrestamos() {
+      if (!App.supabase) return;
+      console.log('🔄 Cargando préstamos...');
+      
+      try {
+        let query;
+        if (App.isAdmin) {
+          query = App.supabase.from('prestamos').select('*');
+        } else {
+          query = App.supabase.from('prestamos').select('*').eq('usuario_id', App.user.id);
+        }
+        
+        const { data } = await query.order('created_at', { ascending: false });
+        
+        const tbody = document.getElementById('prestamos-body');
+        if (tbody) {
+          if (data && data.length > 0) {
+            tbody.innerHTML = data.map(l => {
+              const itemsList = l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
+              return `
+                <tr>
+                  <td><code>${l.id}</code></td>
+                  <td>${itemsList}</td>
+                  <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+                  <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+                  <td><span class="status status-${l.estado}">${l.estado}</span></td>
+                  <td>-</td>
+                </tr>
+              `;
+            }).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error('Error loadPrestamos:', err);
+      }
+    }
+
+    // Funciones globales
+    window.editItem = async function(id) {
+      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+      try {
+        const { data: item, error } = await App.supabase
+          .from('inventario')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error || !item) {
+          return showToast('Item no encontrado', 'error');
+        }
+        
+        const modal = document.getElementById('item-modal');
+        if (!modal) return showToast('Modal no encontrado', 'error');
+        
+        document.getElementById('modal-title').textContent = '✏️ Editar: ' + item.nombre;
+        document.getElementById('item-id').value = item.id;
+        document.getElementById('item-nombre').value = item.nombre || '';
+        document.getElementById('item-serie').value = item.numero_serie || '';
+        document.getElementById('item-cantidad').value = item.cantidad || 1;
+        document.getElementById('item-funciona').value = item.funciona || 'desconocido';
+        document.getElementById('item-estado').value = item.estado || 'disponible';
+        document.getElementById('item-categoria').value = item.categoria || 'otros';
+        document.getElementById('item-datasheet').value = item.datasheet || '';
+        document.getElementById('item-comentarios').value = item.comentarios || '';
+        document.getElementById('item-foto').value = item.foto_url || '';
+        document.getElementById('item-error').textContent = '';
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('active');
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    window.viewComments = function(txt) {
+      if (txt && txt.trim()) alert('📝 COMENTARIOS:\n\n' + txt);
+      else showToast('Sin comentarios', 'info');
+    };
+
+    window.deleteItem = async function(id) {
+      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+      if (!confirm('¿Eliminar?')) return;
+      try {
+        const { error } = await App.supabase.from('inventario').delete().eq('id', id);
+        if (error) throw error;
+        showToast('🗑️ Eliminado', 'success');
+        loadInventory();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    window.deleteBitacora = async function(id) {
+      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+      if (!confirm('¿Eliminar?')) return;
+      try {
+        await App.supabase.from('bitacoras').delete().eq('id', id);
+        showToast('🗑️ Eliminado', 'success');
+        loadBitacora();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    window.deleteMember = async function(username) {
+      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+      if (!confirm(`¿Eliminar a ${username}?`)) return;
+      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
+      try {
+        await App.supabase.from('usuarios').delete().eq('username', username);
+        showToast('🗑️ Eliminado', 'success');
+        loadMembers();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    window.closeReport = async function(id) {
+      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+      try {
+        await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
+        showToast('✅ Cerrado', 'success');
+        loadReportes();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
+    };
+
+    window.addPrestamoItem = function() {
+      const container = document.getElementById('prestamo-items-container');
+      if (!container) return;
+      
+      const newRow = document.createElement('div');
+      newRow.className = 'prestamo-item-row';
+      newRow.innerHTML = `
+        <select class="prestamo-item-select" required>
+          <option value="">Seleccionar item...</option>
+        </select>
+        <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+        <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
+      `;
+      container.appendChild(newRow);
+    };
+
+    window.removePrestamoItem = function(btn) {
+      const rows = document.querySelectorAll('.prestamo-item-row');
+      if (rows.length > 1) {
+        btn.parentElement.remove();
+      } else {
+        showToast('Debe haber al menos un item', 'warning');
+      }
+    };
+
+    function showToast(msg, type = 'info') {
+      const d = document.createElement('div');
+      d.className = `toast ${type}`;
+      d.textContent = msg;
+      document.body.appendChild(d);
+      setTimeout(() => {
+        d.style.opacity = '0';
+        d.style.transform = 'translateY(20px)';
+        setTimeout(() => d.remove(), 300);
+      }, 3000);
+    }
+  </script>
 </body>
 </html>
