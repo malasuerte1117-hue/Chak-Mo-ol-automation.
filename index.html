@@ -7,46 +7,177 @@
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #1a1a25;
+      --bg-hover: #252535;
+      --cyan-neon: #00d4ff;
+      --cyan-glow: rgba(0, 212, 255, 0.4);
+      --red-alert: #ff0040;
+      --red-glow: rgba(255, 0, 64, 0.4);
+      --gold-accent: #D4AF37;
+      --text-primary: #ffffff;
+      --text-secondary: #b0b0c0;
+      --text-muted: #6b6b80;
+      --border-color: #2a2a40;
+      --success: #00ff88;
+      --warning: #ffaa00;
+      --error: #ff0040;
+      --font-display: 'Orbitron', sans-serif;
+      --font-body: 'Roboto', sans-serif;
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slide-right { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+
+    /* Loading */
+    .loading-overlay { position: fixed; inset: 0; background: var(--bg-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
+    .loader { width: 70px; height: 70px; border: 4px solid var(--border-color); border-top-color: var(--cyan-neon); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 24px; box-shadow: 0 0 20px var(--cyan-glow); }
+    .loading-overlay p { color: var(--text-secondary); font-family: var(--font-display); }
+
+    /* Auth */
+    .auth-section { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .auth-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 40px 32px; width: 100%; max-width: 480px; }
+    .logo-title { font-family: var(--font-display); font-size: 2.2rem; color: var(--cyan-neon); text-align: center; margin-bottom: 20px; }
+
+    /* Header */
+    .main-header { position: sticky; top: 0; background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .menu-btn { background: none; border: none; color: var(--text-primary); font-size: 1.6rem; cursor: pointer; display: none; }
+    .brand h2 { font-family: var(--font-display); color: var(--cyan-neon); font-size: 1.2rem; }
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .role-badge { padding: 4px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border: 1px solid var(--border-color); }
+    .role-badge.admin { background: var(--red-alert); border: none; color: #fff; }
+
+    /* Sidebar */
+    .sidebar { position: fixed; left: -300px; top: 65px; width: 260px; height: calc(100vh - 65px); background: var(--bg-card); border-right: 1px solid var(--border-color); z-index: 95; transition: var(--transition); display: flex; flex-direction: column; }
+    .sidebar.open { left: 0; }
+    .nav-menu { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .nav-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: none; border: none; color: var(--text-secondary); border-radius: var(--radius-md); cursor: pointer; text-align: left; min-height: 48px; }
+    .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+    .nav-item.active { background: rgba(0, 212, 255, 0.1); color: var(--cyan-neon); border-left: 3px solid var(--cyan-neon); }
+
+    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 94; opacity: 0; visibility: hidden; transition: var(--transition); }
+    .sidebar-overlay.active { opacity: 1; visibility: visible; }
+
+    /* Main Content */
+    .main-content { padding: 24px; margin-left: 260px; transition: var(--transition); }
+    @media (max-width: 1024px) {
+      .menu-btn { display: block; }
+      .sidebar { left: -300px; }
+      .main-content { margin-left: 0; }
+    }
+
+    .view { display: none; animation: slide-up 0.3s ease; }
+    .view.active { display: block; }
+    .view-title { font-family: var(--font-display); color: var(--cyan-neon); margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; display: flex; align-items: center; gap: 16px; }
+    .stat-icon { font-size: 2rem; }
+    .stat-value { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; }
+    .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+
+    /* Dashboard Activity & Lists */
+    .dashboard-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; margin-bottom: 24px; }
+    .dashboard-section h3 { font-family: var(--font-display); margin-bottom: 20px; color: var(--text-secondary); }
+    
+    .activity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    @media (max-width: 768px) { .activity-grid { grid-template-columns: 1fr; } }
+    
+    .activity-column h4 { color: var(--cyan-neon); margin-bottom: 12px; font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+    .activity-list { list-style: none; max-height: 350px; overflow-y: auto; padding-right: 8px; }
+    /* Scrollbar styling */
+    .activity-list::-webkit-scrollbar { width: 6px; }
+    .activity-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+    .activity-item { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--cyan-neon); font-size: 0.9rem; }
+    .activity-item .time { color: var(--text-muted); font-size: 0.8rem; display: block; margin-bottom: 4px; }
+
+    /* Tables */
+    .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    .data-table th { background: var(--bg-secondary); padding: 14px 16px; text-align: left; color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; }
+    .data-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
+    .data-table tr:hover { background: var(--bg-hover); }
+    .data-table code { background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; color: var(--cyan-neon); font-size: 0.8rem; }
+    
+    .status { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
+    .status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
+    .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
+    .status-desconocido { background: rgba(255,170,0,0.15); color: var(--warning); }
+
+    /* Reports */
+    .reportes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 20px; }
+    .report-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; border-left: 4px solid var(--cyan-neon); transition: var(--transition); }
+    .report-card.closed { opacity: 0.5; border-left-color: var(--text-muted); }
+    .report-urgencia { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: #000; }
+    .report-urgencia.alto { background: var(--red-alert); color: #fff; }
+    .report-urgencia.medio { background: var(--warning); }
+    .report-urgencia.bajo { background: var(--success); }
+
+    /* Forms & Buttons */
+    .form-group { margin-bottom: 16px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 0.9rem; }
+    input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px; color: var(--text-primary); width: 100%; }
+    
+    .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-primary { background: var(--cyan-neon); color: #000; }
+    .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    .btn-danger { color: var(--red-alert); }
+    .btn-full { width: 100%; justify-content: center; }
+
+    /* Modal */
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content { background: var(--bg-card); padding: 30px; border-radius: var(--radius-lg); width: 100%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
+    .modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); background: none; border: none; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--bg-card); border-left: 4px solid var(--cyan-neon); padding: 15px 20px; border-radius: var(--radius-sm); z-index: 2000; animation: slide-right 0.3s ease; box-shadow: 0 5px 20px rgba(0,0,0,0.5); }
+    .toast.success { border-left-color: var(--success); }
+    .toast.error { border-left-color: var(--red-alert); }
+
+    .prestamo-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+    .prestamo-item-row select, .prestamo-item-row input { flex: 1; }
+  </style>
 </head>
 <body>
 
   <div id="loading-overlay" class="loading-overlay">
     <div class="loader"></div>
-    <p>Conectando con CHAK' MO'OL Core...</p>
-    <p id="loading-status" style="font-size: 0.8rem; margin-top: 10px; color: #666;">Inicializando...</p>
+    <p>Conectando...</p>
   </div>
 
   <section id="login-section" class="auth-section" style="display: none;">
     <div class="auth-container">
-      <header class="auth-header">
-        <h1 class="logo-title">CHAK' MO'OL</h1>
-        <p class="slogan-main">"U PÁAJTALIL MAAN"</p>
-        <p class="slogan-sub">EL PODER DE IR MÁS ALLÁ</p>
-      </header>
-      <form id="login-form" class="auth-form">
-        <div class="form-group">
-          <label>Usuario</label>
-          <input type="text" id="username" required autocomplete="username">
-        </div>
-        <div class="form-group">
-          <label>Contraseña</label>
-          <input type="password" id="password" required autocomplete="current-password">
-        </div>
-        <div id="login-error" class="error-message"></div>
+      <h1 class="logo-title">CHAK' MO'OL</h1>
+      <form id="login-form">
+        <div class="form-group"><label>Usuario</label><input type="text" id="username" required></div>
+        <div class="form-group"><label>Contraseña</label><input type="password" id="password" required></div>
         <button type="submit" class="btn-primary btn-full">⚡ ACCEDER</button>
       </form>
     </div>
   </section>
 
-  <section id="app-section" class="app-section" style="display: none;">
+  <section id="app-section" style="display: none;">
     <header class="main-header">
       <div class="header-left">
-        <button id="menu-toggle" class="menu-btn" aria-label="Menú">☰</button>
-        <div class="brand">
-          <h2>CHAK' MO'OL <span class="badge">PRO</span></h2>
-          <p class="tagline">EL PODER DE IR MÁS ALLÁ</p>
-        </div>
+        <button id="menu-toggle" class="menu-btn">☰</button>
+        <div class="brand"><h2>CHAK' MO'OL <span class="badge">PRO</span></h2></div>
       </div>
       <div class="header-right">
         <span id="user-display"></span>
@@ -57,16 +188,13 @@
 
     <aside id="sidebar" class="sidebar">
       <nav class="nav-menu">
-        <button class="nav-item active" data-view="dashboard">📊 Dashboard</button>
+        <button class="nav-item active" data-view="dashboard"> Dashboard</button>
         <button class="nav-item" data-view="inventario">📦 Inventario</button>
         <button class="nav-item admin-only" data-view="miembros" hidden>👥 Miembros</button>
         <button class="nav-item" data-view="bitacora">📝 Bitácora</button>
         <button class="nav-item admin-only" data-view="prestamos" hidden>🔄 Préstamos</button>
         <button class="nav-item" data-view="reportes">🚨 Reportes</button>
       </nav>
-      <div class="sidebar-footer">
-        <p class="eslogan-small">"U PÁAJTALIL MAAN"</p>
-      </div>
     </aside>
 
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
@@ -82,15 +210,21 @@
           <article class="stat-card"><div class="stat-icon">🚨</div><div><span class="stat-value" id="stat-reports">0</span><span class="stat-label">Reportes</span></div></article>
         </div>
         
-        <div class="dashboard-activity">
+        <div class="dashboard-section">
           <h3>📋 Actividad Reciente</h3>
           <div class="activity-grid">
-            <div class="activity-column"><h4>📝 Bitácora</h4><ul id="dashboard-bitacora-list" class="activity-list"></ul></div>
-            <div class="activity-column"><h4>🚨 Reportes</h4><ul id="dashboard-reportes-list" class="activity-list"></ul></div>
+            <div class="activity-column">
+              <h4>📝 Bitácora</h4>
+              <ul id="dashboard-bitacora-list" class="activity-list"></ul>
+            </div>
+            <div class="activity-column">
+              <h4>🚨 Reportes</h4>
+              <ul id="dashboard-reportes-list" class="activity-list"></ul>
+            </div>
           </div>
         </div>
 
-        <div class="dashboard-activity mt-2">
+        <div class="dashboard-section">
           <h3>🔄 Préstamos Recientes</h3>
           <div class="activity-grid">
             <div class="activity-column">
@@ -107,258 +241,121 @@
 
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Gestión de Inventario</h2>
-        <div class="inventory-actions">
+        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
           <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
           <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
         </div>
         <div class="table-container">
           <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Material</th>
-                <th>N° Serie</th>
-                <th>Cant.</th>
-                <th>Funciona</th>
-                <th>Estado</th>
-                <th>Datasheet</th>
-                <th>Comentarios</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
+            <thead><tr><th>ID</th><th>Material</th><th>Serie</th><th>Cant.</th><th>Estado</th><th>Acciones</th></tr></thead>
             <tbody id="inventory-body"></tbody>
           </table>
-        </div>
-
-        <div id="item-modal" class="modal" hidden>
-          <div class="modal-content">
-            <button class="modal-close" aria-label="Cerrar">&times;</button>
-            <h3 id="modal-title">Equipo</h3>
-            <form id="item-form">
-              <input type="hidden" id="item-id">
-              <div class="form-group">
-                <label>Material *</label>
-                <input type="text" id="item-nombre" required>
-              </div>
-              <div class="form-row">
-                <div class="form-group"><label>N° Serie</label><input type="text" id="item-serie"></div>
-                <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1"></div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>¿Funciona?</label>
-                  <select id="item-funciona">
-                    <option value="si">Sí</option>
-                    <option value="no">No</option>
-                    <option value="desconocido">Desconocido</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Estado</label>
-                  <select id="item-estado">
-                    <option value="disponible">Disponible</option>
-                    <option value="prestado">Prestado</option>
-                    <option value="mantenimiento">Mantenimiento</option>
-                    <option value="dañado">Dañado</option>
-                  </select>
-                </div>
-              </div>
-              <div class="form-group">
-                <label>Categoría</label>
-                <select id="item-categoria">
-                  <option value="electronica">Electrónica</option>
-                  <option value="mecanica">Mecánica</option>
-                  <option value="sensores">Sensores</option>
-                  <option value="herramientas">Herramientas</option>
-                  <option value="otros">Otros</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>URL Datasheet</label>
-                <input type="url" id="item-datasheet">
-              </div>
-              <div class="form-group">
-                <label>Comentarios</label>
-                <textarea id="item-comentarios"></textarea>
-              </div>
-              <div class="form-group">
-                <label>URL Foto</label>
-                <input type="url" id="item-foto">
-              </div>
-              <div id="item-error" class="error-message"></div>
-              <button type="submit" class="btn-primary btn-full">💾 Guardar</button>
-            </form>
-          </div>
         </div>
       </div>
 
       <div id="view-bitacora" class="view" hidden>
-        <h2 class="view-title">📝 Bitácora</h2>
-        <form id="bitacora-form" class="form-card">
+        <h2 class="view-title"> Bitácora</h2>
+        <form id="bitacora-form" class="dashboard-section" style="max-width: 600px;">
           <div class="form-group"><label>Título *</label><input type="text" id="bitacora-titulo" required></div>
           <div class="form-row">
-            <div class="form-group"><label>Categoría *</label>
-              <select id="bitacora-categoria" required>
+            <div class="form-group"><label>Categoría</label>
+              <select id="bitacora-categoria">
                 <option value="mantenimiento">Mantenimiento</option>
                 <option value="desarrollo">Desarrollo</option>
-                <option value="capacitacion">Capacitación</option>
                 <option value="evento">Evento</option>
-                <option value="incidencia">Incidencia</option>
               </select>
             </div>
-            <div class="form-group"><label>Actividad *</label><input type="text" id="bitacora-actividad" required></div>
+            <div class="form-group"><label>Actividad</label><input type="text" id="bitacora-actividad" required></div>
           </div>
           <button type="submit" class="btn-primary">📤 Registrar</button>
         </form>
         <div class="table-container mt-2">
-          <table class="data-table">
-            <thead><tr><th>Fecha</th><th>Usuario</th><th>Título</th><th>Categoría</th><th>Actividad</th><th>Acción</th></tr></thead>
-            <tbody id="bitacora-body"></tbody>
-          </table>
+          <table class="data-table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Título</th><th>Acción</th></tr></thead><tbody id="bitacora-body"></tbody></table>
         </div>
       </div>
 
       <div id="view-miembros" class="view admin-only" hidden>
         <h2 class="view-title">👥 Miembros</h2>
-        <form id="miembro-form" class="form-card">
-          <div class="form-row">
-            <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required></div>
-            <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required></div>
-          </div>
-          <div class="form-row">
-            <div class="form-group"><label>Nombre *</label><input type="text" id="miembro-nombre" required></div>
-            <div class="form-group"><label>Rol *</label><select id="miembro-rol" required><option value="miembro">Miembro</option><option value="administrador">Administrador</option></select></div>
-          </div>
-          <div class="form-group"><label>Área</label><input type="text" id="miembro-area"></div>
-          <button type="submit" class="btn-primary">💾 Guardar</button>
-        </form>
-        <div class="table-container mt-2">
-          <table class="data-table">
-            <thead><tr><th>ID</th><th>Username</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Acción</th></tr></thead>
-            <tbody id="miembros-body"></tbody>
-          </table>
+        <div class="table-container">
+          <table class="data-table"><thead><tr><th>Username</th><th>Nombre</th><th>Rol</th><th>Acción</th></tr></thead><tbody id="miembros-body"></tbody></table>
         </div>
       </div>
 
       <div id="view-prestamos" class="view admin-only" hidden>
         <h2 class="view-title">🔄 Préstamos</h2>
-        
-        <form id="prestamo-form" class="form-card">
-          <h3>📋 Nueva Solicitud de Préstamo</h3>
-          
-          <div class="form-group">
-            <label>Items a Prestar *</label>
-            <div id="prestamo-items-container">
-              <div class="prestamo-item-row">
-                <select class="prestamo-item-select" required>
-                  <option value="">Seleccionar item...</option>
-                </select>
-                <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-                <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
-              </div>
-            </div>
-            <button type="button" class="btn-secondary btn-sm" onclick="addPrestamoItem()" style="margin-top: 10px;">+ Agregar otro item</button>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label>Fecha de Préstamo *</label>
-              <input type="date" id="prestamo-fecha-inicio" required>
-            </div>
-            <div class="form-group">
-              <label>Fecha de Devolución *</label>
-              <input type="date" id="prestamo-fecha-devolucion" required>
-            </div>
-          </div>
-          
-          <div class="form-group">
-            <label>Motivo del Préstamo</label>
-            <textarea id="prestamo-motivo" placeholder="Describe el propósito del préstamo..."></textarea>
-          </div>
-          
-          <div id="prestamo-error" class="error-message"></div>
-          <button type="submit" class="btn-primary btn-full">✅ Solicitar Préstamo</button>
-        </form>
-        
-        <div id="prestamos-pendientes-section" class="mt-2" hidden>
-          <h3>⏳ Préstamos Pendientes de Autorización</h3>
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Solicitante</th>
-                  <th>Items</th>
-                  <th>Fecha Préstamo</th>
-                  <th>Fecha Devolución</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody id="prestamos-pendientes-body"></tbody>
-            </table>
-          </div>
-        </div>
-        
-        <div id="mis-prestamos-section" class="mt-2">
-          <h3>📦 <span id="mis-prestamos-title">Mis Préstamos</span></h3>
-          <div class="table-container">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Items</th>
-                  <th>Fecha Préstamo</th>
-                  <th>Fecha Devolución</th>
-                  <th>Estado</th>
-                  <th>Acción</th>
-                </tr>
-              </thead>
-              <tbody id="prestamos-body"></tbody>
-            </table>
-          </div>
+        <div class="table-container">
+          <table class="data-table"><thead><tr><th>ID</th><th>Solicitante</th><th>Items</th><th>Estado</th><th>Acción</th></tr></thead><tbody id="prestamos-body"></tbody></table>
         </div>
       </div>
 
       <div id="view-reportes" class="view" hidden>
         <h2 class="view-title">🚨 Reportes</h2>
-        <form id="reporte-form" class="form-card">
-          <h3>Crear Reporte</h3>
+        <form id="reporte-form" class="dashboard-section" style="max-width: 600px;">
           <div class="form-group"><label>Título *</label><input type="text" id="reporte-titulo" required></div>
           <div class="form-row">
-            <div class="form-group"><label>Categoría *</label>
-              <select id="reporte-categoria" required>
-                <option value="fallo_tecnico">Fallo Técnico</option>
-                <option value="falta_piezas">Falta Piezas</option>
-                <option value="clima">Clima</option>
-                <option value="seguridad">Seguridad</option>
-                <option value="infraestructura">Infraestructura</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Urgencia *</label>
-              <select id="reporte-urgencia" required>
+            <div class="form-group"><label>Urgencia</label>
+              <select id="reporte-urgencia">
                 <option value="bajo">🟢 Bajo</option>
                 <option value="medio">🟡 Medio</option>
                 <option value="alto">🔴 Alto</option>
               </select>
             </div>
+            <div class="form-group"><label>Categoría</label>
+              <select id="reporte-categoria">
+                <option value="fallo_tecnico">Fallo Técnico</option>
+                <option value="infraestructura">Infraestructura</option>
+                <option value="seguridad">Seguridad</option>
+              </select>
+            </div>
           </div>
-          <div class="form-group"><label>Descripción *</label><textarea id="reporte-descripcion" required></textarea></div>
+          <div class="form-group"><label>Descripción</label><textarea id="reporte-descripcion"></textarea></div>
           <button type="submit" class="btn-primary">🚨 Enviar</button>
         </form>
-        <div id="reportes-list" class="reportes-grid mt-2"></div>
+        <div id="reportes-list" class="reportes-grid"></div>
       </div>
 
     </main>
   </section>
 
-  <div id="toast-container"></div>
-  
+  <!-- MODAL INVENTARIO -->
+  <div id="item-modal" class="modal">
+    <div class="modal-content">
+      <button class="modal-close">&times;</button>
+      <h3 id="modal-title" style="margin-bottom: 20px;">Equipo</h3>
+      <form id="item-form">
+        <input type="hidden" id="item-id">
+        <div class="form-group"><label>Material *</label><input type="text" id="item-nombre" required></div>
+        <div class="form-row">
+          <div class="form-group"><label>N° Serie</label><input type="text" id="item-serie"></div>
+          <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estado</label>
+            <select id="item-estado">
+              <option value="disponible">Disponible</option>
+              <option value="prestado">Prestado</option>
+              <option value="mantenimiento">Mantenimiento</option>
+              <option value="dañado">Dañado</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>¿Funciona?</label>
+            <select id="item-funciona">
+              <option value="si">Sí</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Comentarios</label><textarea id="item-comentarios"></textarea></div>
+        <button type="submit" class="btn-primary btn-full">💾 Guardar</button>
+      </form>
+    </div>
+  </div>
+
   <script>
-    // CONFIGURACIÓN
     const SUPABASE_URL = 'https://wmoejlgebchqtchzopuf.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtb2VqbGdlYmNocXRjaHpvcHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Njg0MjksImV4cCI6MjA5MzA0NDQyOX0.lK3BKNmCHlMIDtLWOAwsyvuWNMvIcgQvzUH0IjYZ9y4';
-
     const ADMIN_USERS = [
       { username: 'luis', password: 'LECR1123', nombre: 'Luis Enrique Canul Rosado', rol: 'administrador', id: 1 },
       { username: 'sixto', password: 'sixto2026', nombre: 'Sixto', rol: 'administrador', id: 2 }
@@ -366,934 +363,349 @@
 
     let App = { user: null, isAdmin: false, supabase: null };
 
-    function updateLoadingStatus(msg) {
-      const statusEl = document.getElementById('loading-status');
-      if (statusEl) statusEl.textContent = msg;
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('✅ DOM cargado');
-      updateLoadingStatus('Cargando librerías...');
-      
-      if (typeof window.supabase === 'undefined') {
-        console.error('❌ Supabase no está cargado');
-        updateLoadingStatus('Error: No se pudo cargar Supabase');
-        setTimeout(() => {
-          alert('Error de conexión. Recarga la página.');
-        }, 2000);
-        return;
-      }
-      
-      updateLoadingStatus('Conectando a base de datos...');
-      
-      try {
-        App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        console.log('✅ Supabase conectado');
-        updateLoadingStatus('Iniciando aplicación...');
-        
-        setTimeout(() => {
-          const loader = document.getElementById('loading-overlay');
-          if (loader) {
-            loader.style.opacity = '0';
-            loader.style.transition = 'opacity 0.5s';
-            setTimeout(() => {
-              loader.style.display = 'none';
-            }, 500);
-          }
-          
-          document.getElementById('login-section').style.display = 'flex';
-          document.getElementById('app-section').style.display = 'none';
-          
-          setupEvents();
-          console.log('✅ Aplicación lista');
-        }, 1000);
-        
-      } catch (error) {
-        console.error('❌ Error al inicializar:', error);
-        updateLoadingStatus('Error: ' + error.message);
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => { document.getElementById('loading-overlay').style.display = 'none'; }, 800);
+      App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      document.getElementById('login-section').style.display = 'flex';
+      setupEvents();
     });
 
     function setupEvents() {
       const menuToggle = document.getElementById('menu-toggle');
       const sidebar = document.getElementById('sidebar');
-      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      const overlay = document.getElementById('sidebar-overlay');
       
-      function toggleSidebar() {
+      const toggleMenu = () => {
         sidebar.classList.toggle('open');
-        sidebarOverlay.classList.toggle('active');
-        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
-      }
+        overlay.classList.toggle('active');
+      };
       
-      function closeSidebar() {
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-      }
-      
-      if (menuToggle) {
-        menuToggle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleSidebar();
-        });
-      }
-      
-      if (sidebarOverlay) {
-        sidebarOverlay.addEventListener('click', closeSidebar);
-      }
+      menuToggle?.addEventListener('click', toggleMenu);
+      overlay?.addEventListener('click', toggleMenu);
 
-      const loginForm = document.getElementById('login-form');
-      if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const u = document.getElementById('username').value.trim().toLowerCase();
-          const p = document.getElementById('password').value;
-          
-          const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
-          if (master) {
-            loginSuccess(master);
-            return;
-          }
-          
-          try {
-            const { data, error } = await App.supabase
-              .from('usuarios')
-              .select('*')
-              .eq('username', u)
-              .eq('password', p)
-              .single();
-              
-            if (error || !data) {
-              document.getElementById('login-error').textContent = '❌ Credenciales incorrectas';
-              showToast('Credenciales incorrectas', 'error');
-            } else {
-              loginSuccess(data);
-            }
-          } catch (err) {
-            console.error('Error login:', err);
-            document.getElementById('login-error').textContent = 'Error de conexión';
-          }
-        });
-      }
-      
-      const logoutBtn = document.getElementById('logout-btn');
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-          App.user = null;
-          App.isAdmin = false;
-          document.getElementById('app-section').style.display = 'none';
-          document.getElementById('login-section').style.display = 'flex';
-          closeSidebar();
-        });
-      }
-      
+      document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const u = document.getElementById('username').value.trim().toLowerCase();
+        const p = document.getElementById('password').value;
+        const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
+        if (master) loginSuccess(master);
+        else {
+          const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
+          if (data) loginSuccess(data);
+          else alert('❌ Credenciales incorrectas');
+        }
+      });
+
+      document.getElementById('logout-btn')?.addEventListener('click', () => {
+        App.user = null;
+        location.reload();
+      });
+
       document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const view = e.currentTarget.dataset.view;
-          if (!view) return;
+          if (!view || (e.currentTarget.classList.contains('admin-only') && !App.isAdmin)) return;
           
-          if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) {
-            showToast('🔐 Solo administradores', 'error');
-            return;
-          }
-          
-          document.querySelectorAll('.view').forEach(v => { 
-            v.classList.remove('active'); 
-            v.hidden = true; 
-          });
+          document.querySelectorAll('.view').forEach(v => v.classList.remove('active') || (v.hidden = true));
           document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
           
           const target = document.getElementById('view-' + view);
-          if (target) { 
-            target.classList.add('active'); 
-            target.hidden = false; 
-          }
+          if (target) { target.classList.add('active'); target.hidden = false; }
           e.currentTarget.classList.add('active');
           
+          if (window.innerWidth < 1024) {
+             sidebar.classList.remove('open');
+             overlay.classList.remove('active');
+          }
+
           if (view === 'dashboard') loadDashboard();
           if (view === 'inventario') loadInventory();
           if (view === 'bitacora') loadBitacora();
           if (view === 'reportes') loadReportes();
           if (view === 'miembros' && App.isAdmin) loadMembers();
           if (view === 'prestamos' && App.isAdmin) loadPrestamos();
-          
-          if (window.innerWidth < 1024) {
-            closeSidebar();
-          }
         });
       });
-      
-      setupFormEvents();
-    }
 
-    function setupFormEvents() {
-      const bitacoraForm = document.getElementById('bitacora-form');
-      if (bitacoraForm) {
-        bitacoraForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          try {
-            const { error } = await App.supabase.from('bitacoras').insert([{
-              usuario_id: App.user.id,
-              nombre_usuario: App.user.nombre || App.user.username,
-              titulo: document.getElementById('bitacora-titulo').value,
-              actividad: document.getElementById('bitacora-actividad').value,
-              categoria: document.getElementById('bitacora-categoria').value,
-              fecha: new Date().toISOString()
-            }]);
-            if (error) throw error;
-            showToast('✅ Bitácora guardada', 'success');
-            e.target.reset();
-            loadBitacora();
-            loadDashboard();
-          } catch (err) {
-            showToast('Error: ' + err.message, 'error');
-          }
-        });
-      }
-      
-      const reporteForm = document.getElementById('reporte-form');
-      if (reporteForm) {
-        reporteForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          try {
-            const { error } = await App.supabase.from('reportes').insert([{
-              usuario_id: App.user.id,
-              nombre_usuario: App.user.nombre || App.user.username,
-              titulo: document.getElementById('reporte-titulo').value,
-              descripcion: document.getElementById('reporte-descripcion').value,
-              categoria: document.getElementById('reporte-categoria').value,
-              urgencia: document.getElementById('reporte-urgencia').value,
-              estado: 'abierto',
-              created_at: new Date().toISOString()
-            }]);
-            if (error) throw error;
-            showToast('🚨 Reporte creado', 'success');
-            e.target.reset();
-            loadReportes();
-            loadDashboard();
-          } catch (err) {
-            showToast('Error: ' + err.message, 'error');
-          }
-        });
-      }
-      
-      const modalClose = document.querySelector('.modal-close');
+      // Forms
+      document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await App.supabase.from('bitacoras').insert([{
+          usuario_id: App.user.id,
+          nombre_usuario: App.user.nombre,
+          titulo: document.getElementById('bitacora-titulo').value,
+          actividad: document.getElementById('bitacora-actividad').value,
+          categoria: document.getElementById('bitacora-categoria').value,
+          fecha: new Date().toISOString()
+        }]);
+        showToast('✅ Bitácora guardada', 'success');
+        e.target.reset();
+        loadBitacora(); loadDashboard();
+      });
+
+      document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await App.supabase.from('reportes').insert([{
+          usuario_id: App.user.id,
+          nombre_usuario: App.user.nombre,
+          titulo: document.getElementById('reporte-titulo').value,
+          descripcion: document.getElementById('reporte-descripcion').value,
+          categoria: document.getElementById('reporte-categoria').value,
+          urgencia: document.getElementById('reporte-urgencia').value,
+          estado: 'abierto',
+          created_at: new Date().toISOString()
+        }]);
+        showToast('🚨 Reporte creado', 'success');
+        e.target.reset();
+        loadReportes(); loadDashboard();
+      });
+
+      // Modal logic
       const modal = document.getElementById('item-modal');
-      if (modalClose && modal) {
-        modalClose.addEventListener('click', () => {
-          modal.classList.add('hidden');
-          modal.classList.remove('active');
-        });
-      }
-      
-      const btnAddItem = document.getElementById('btn-add-item');
-      if (btnAddItem) {
-        btnAddItem.addEventListener('click', () => {
-          if (modal) {
-            document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
-            document.getElementById('item-form').reset();
-            document.getElementById('item-id').value = '';
-            document.getElementById('item-error').textContent = '';
-            modal.classList.remove('hidden');
-            modal.classList.add('active');
-          }
-        });
-      }
-      
-      const itemForm = document.getElementById('item-form');
-      if (itemForm) {
-        itemForm.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          try {
-            let id = document.getElementById('item-id').value;
-            
-            const item = {
-              nombre: document.getElementById('item-nombre').value,
-              numero_serie: document.getElementById('item-serie').value || 'N/A',
-              cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
-              funciona: document.getElementById('item-funciona').value,
-              estado: document.getElementById('item-estado').value,
-              categoria: document.getElementById('item-categoria').value,
-              datasheet: document.getElementById('item-datasheet').value,
-              comentarios: document.getElementById('item-comentarios').value,
-              foto_url: document.getElementById('item-foto').value
-            };
-            
-            if (id) {
-              await App.supabase.from('inventario').update(item).eq('id', id);
-              showToast('✅ Actualizado', 'success');
-            } else {
-              const cleanName = item.nombre.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
-              id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
-              item.id = id;
-              item.created_at = new Date().toISOString();
-              
-              const { error } = await App.supabase.from('inventario').insert([item]);
-              if (error) throw error;
-              showToast('✅ Creado', 'success');
-            }
-            
-            if (modal) {
-              modal.classList.add('hidden');
-              modal.classList.remove('active');
-            }
-            loadInventory();
-          } catch (err) {
-            document.getElementById('item-error').textContent = 'Error: ' + err.message;
-            showToast('Error: ' + err.message, 'error');
-          }
-        });
-      }
+      document.querySelector('.modal-close')?.addEventListener('click', () => {
+        modal.classList.remove('active');
+      });
+
+      document.getElementById('btn-add-item')?.addEventListener('click', () => {
+        document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
+        document.getElementById('item-form').reset();
+        document.getElementById('item-id').value = '';
+        modal.classList.add('active');
+      });
+
+      document.getElementById('item-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('item-id').value;
+        const item = {
+          nombre: document.getElementById('item-nombre').value,
+          numero_serie: document.getElementById('item-serie').value || 'N/A',
+          cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
+          funciona: document.getElementById('item-funciona').value,
+          estado: document.getElementById('item-estado').value,
+          comentarios: document.getElementById('item-comentarios').value
+        };
+        
+        if (id) await App.supabase.from('inventario').update(item).eq('id', id);
+        else {
+          item.id = 'ITEM-' + Date.now();
+          item.created_at = new Date().toISOString();
+          await App.supabase.from('inventario').insert([item]);
+        }
+        
+        modal.classList.remove('active');
+        loadInventory();
+        showToast('✅ Guardado', 'success');
+      });
     }
 
     function loginSuccess(user) {
       App.user = user;
       App.isAdmin = user.rol === 'administrador';
-      
       document.getElementById('login-section').style.display = 'none';
       document.getElementById('app-section').style.display = 'block';
-      document.getElementById('user-display').textContent = (user.nombre || user.username).split(' ')[0];
+      document.getElementById('user-display').textContent = user.nombre.split(' ')[0];
       
       const badge = document.getElementById('role-badge');
-      if (badge) {
-        badge.textContent = user.rol;
-        badge.className = App.isAdmin ? 'role-badge admin' : 'role-badge';
-      }
+      badge.textContent = user.rol;
+      badge.className = App.isAdmin ? 'role-badge admin' : 'role-badge';
       
-      updateAdminUI();
-      loadDashboard();
-      
-      document.querySelectorAll('.view').forEach(v => { 
-        v.classList.remove('active'); 
-        v.hidden = true; 
-      });
-      const dashboard = document.getElementById('view-dashboard');
-      if (dashboard) { 
-        dashboard.classList.add('active'); 
-        dashboard.hidden = false; 
-      }
-    }
-
-    function updateAdminUI() {
       document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
+      loadDashboard();
     }
 
-    // === DASHBOARD COMPLETO ===
+    // === DASHBOARD LOGIC ===
     async function loadDashboard() {
       if (!App.supabase) return;
-      
       try {
         const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
         const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
         const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
-        const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
+        const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente']);
         
-        const invEl = document.getElementById('stat-inventory');
-        const memEl = document.getElementById('stat-members');
-        const repEl = document.getElementById('stat-reports');
-        const loansEl = document.getElementById('stat-loans');
-        
-        if (invEl) invEl.textContent = inv || 0;
-        if (memEl) memEl.textContent = mem || 0;
-        if (repEl) repEl.textContent = rep || 0;
-        if (loansEl) loansEl.textContent = loans || 0;
-      } catch (err) {
-        console.error('Error stats:', err);
-      }
-      
-      // Cargar bitácoras recientes
-      try {
-        const { data: bits } = await App.supabase
-          .from('bitacoras')
-          .select('*')
-          .order('fecha', { ascending: false })
-          .limit(5);
-        
-        const bitList = document.getElementById('dashboard-bitacora-list');
-        if (bitList) {
-          if (bits && bits.length > 0) {
-            bitList.innerHTML = bits.map(b => 
-              `<li class="activity-item">
-                <span class="time">${new Date(b.fecha).toLocaleString()}</span>
-                <strong>${b.titulo || 'Sin título'}</strong>
-                <small style="color:#666;display:block;margin-top:4px">${(b.actividad||'').substring(0,60)}${(b.actividad||'').length > 60 ? '...' : ''}</small>
-              </li>`
-            ).join('');
-          } else {
-            bitList.innerHTML = '<li class="text-muted">Sin registros de bitácora</li>';
-          }
-        }
-      } catch (err) {
-        console.error('Error bitácoras:', err);
-      }
-      
-      // Cargar reportes recientes
-      try {
-        const { data: reps } = await App.supabase
-          .from('reportes')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        
-        const repList = document.getElementById('dashboard-reportes-list');
-        if (repList) {
-          const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
-          if (reps && reps.length > 0) {
-            repList.innerHTML = reps.map(r => 
-              `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}">
-                <span class="time">${new Date(r.created_at).toLocaleString()}</span>
-                <strong style="color:${colors[r.urgencia] || '#00d4ff'}">[${(r.urgencia || 'N/A').toUpperCase()}]</strong>
-                <span style="color:#333"> ${r.titulo || 'Sin título'}</span>
-                ${r.estado === 'cerrado' ? '<small style="color:#28a745;margin-left:8px">✓ Cerrado</small>' : ''}
-              </li>`
-            ).join('');
-          } else {
-            repList.innerHTML = '<li class="text-muted">Sin reportes recientes</li>';
-          }
-        }
-      } catch (err) {
-        console.error('Error reportes:', err);
-      }
-      
-      // Cargar préstamos recientes
-      try {
-        const { data: prestamos } = await App.supabase
-          .from('prestamos')
-          .select('*')
-          .eq('estado', 'autorizado')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        
-        const prestamosList = document.getElementById('dashboard-prestamos-list');
-        if (prestamosList) {
-          if (prestamos && prestamos.length > 0) {
-            prestamosList.innerHTML = prestamos.map(p => {
-              const itemsText = p.items ? p.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
-              return `
-                <li class="activity-item">
-                  <span class="time">${new Date(p.fecha_prestamo).toLocaleDateString()}</span>
-                  <strong>📤 ${p.nombre_solicitante}</strong>
-                  <small style="color:#666;display:block;margin-top:4px">${itemsText}</small>
-                  <small style="color:#00cc66">Devolución: ${new Date(p.fecha_devolucion).toLocaleDateString()}</small>
-                </li>`;
-            }).join('');
-          } else {
-            prestamosList.innerHTML = '<li class="text-muted">Sin préstamos activos</li>';
-          }
-        }
-      } catch (err) {
-        console.error('Error préstamos:', err);
-      }
-      
-      // Cargar devoluciones recientes
-      try {
-        const { data: devoluciones } = await App.supabase
-          .from('prestamos')
-          .select('*')
-          .eq('estado', 'devuelto')
-          .order('fecha_confirmacion', { ascending: false })
-          .limit(5);
-        
-        const devolucionesList = document.getElementById('dashboard-devoluciones-list');
-        if (devolucionesList) {
-          if (devoluciones && devoluciones.length > 0) {
-            devolucionesList.innerHTML = devoluciones.map(d => {
-              const itemsText = d.items ? d.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
-              return `
-                <li class="activity-item">
-                  <span class="time">${new Date(d.fecha_confirmacion).toLocaleDateString()}</span>
-                  <strong>📥 ${d.nombre_solicitante}</strong>
-                  <small style="color:#666;display:block;margin-top:4px">${itemsText}</small>
-                  <small style="color:#28a745">✓ Devuelto</small>
-                </li>`;
-            }).join('');
-          } else {
-            devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones recientes</li>';
-          }
-        }
-      } catch (err) {
-        console.error('Error devoluciones:', err);
-      }
-    }
+        document.getElementById('stat-inventory').textContent = inv || 0;
+        document.getElementById('stat-members').textContent = mem || 0;
+        document.getElementById('stat-reports').textContent = rep || 0;
+        document.getElementById('stat-loans').textContent = loans || 0;
 
-    async function loadBitacora() {
-      if (!App.supabase) return;
-      try {
-        const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
-        const tbody = document.getElementById('bitacora-body');
-        if (!tbody) return;
-        
-        if (data && data.length > 0) {
-          tbody.innerHTML = data.map(b => `
-            <tr>
-              <td>${new Date(b.fecha).toLocaleString()}</td>
-              <td>${b.nombre_usuario}</td>
-              <td>${b.titulo}</td>
-              <td>${b.categoria}</td>
-              <td>${b.actividad}</td>
-              <td>${App.isAdmin ? `<button class="btn-sm" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
-            </tr>
-          `).join('');
-        } else {
-          tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
-        }
+        // Bitácora
+        const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+        const bitList = document.getElementById('dashboard-bitacora-list');
+        bitList.innerHTML = bits?.length ? bits.map(b => `
+          <li class="activity-item">
+            <span class="time">${new Date(b.fecha).toLocaleString()}</span>
+            <strong>${b.titulo}</strong>
+            <div style="font-size:0.8rem; color:#888">${b.actividad?.substring(0,50)}...</div>
+          </li>`).join('') : '<li style="padding:10px;color:#666">Sin registros</li>';
+
+        // Reportes
+        const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
+        const repList = document.getElementById('dashboard-reportes-list');
+        const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
+        repList.innerHTML = reps?.length ? reps.map(r => `
+          <li class="activity-item" style="border-left-color: ${colors[r.urgencia] || '#00d4ff'}">
+            <span class="time">${new Date(r.created_at).toLocaleString()}</span>
+            <strong style="color:${colors[r.urgencia]}">[${r.urgencia.toUpperCase()}]</strong>
+            <span>${r.titulo}</span>
+            ${r.estado === 'cerrado' ? '<span style="color:#28a745;float:right">✓ Cerrado</span>' : ''}
+          </li>`).join('') : '<li style="padding:10px;color:#666">Sin reportes</li>';
+
+        // Préstamos
+        const { data: prestamos } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
+        const presList = document.getElementById('dashboard-prestamos-list');
+        presList.innerHTML = prestamos?.length ? prestamos.map(p => {
+           const items = p.items?.map(i => `${i.nombre}`).join(', ');
+           return `<li class="activity-item"><span class="time">📤 ${p.nombre_solicitante}</span><div style="font-size:0.85rem">${items}</div></li>`;
+        }).join('') : '<li style="padding:10px;color:#666">Sin préstamos activos</li>';
+
+        // Devoluciones
+        const { data: devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
+        const devList = document.getElementById('dashboard-devoluciones-list');
+        devList.innerHTML = devs?.length ? devs.map(d => {
+           const items = d.items?.map(i => `${i.nombre}`).join(', ');
+           return `<li class="activity-item"><span class="time">📥 ${d.nombre_solicitante}</span><div style="font-size:0.85rem">${items}</div><small style="color:#28a745">✓ Devuelto</small></li>`;
+        }).join('') : '<li style="padding:10px;color:#666">Sin devoluciones recientes</li>';
+
       } catch (err) {
-        console.error('Error loadBitacora:', err);
+        console.error("Error Dashboard:", err);
       }
     }
 
     async function loadReportes() {
       if (!App.supabase) return;
-      try {
-        const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
-        const container = document.getElementById('reportes-list');
-        if (!container) return;
-        
-        const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
-        
-        if (data && data.length > 0) {
-          container.innerHTML = data.map(r => `
-            <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
-              <div class="report-header">
-                <span class="report-urgencia" style="background:${colors[r.urgencia]}">${r.urgencia.toUpperCase()}</span>
-                <span class="status status-${r.estado}">${r.estado}</span>
-              </div>
-              <h4>${r.titulo}</h4>
-              <p>${r.descripcion}</p>
-              <div class="report-meta">
-                <span>👤 ${r.nombre_usuario}</span>
-                <span>📁 ${r.categoria}</span>
-              </div>
-              ${App.isAdmin && r.estado !== 'cerrado' ? 
-                `<div class="report-actions"><button class="btn-primary btn-sm" onclick="closeReport('${r.id}')">✅ Cerrar</button> <button class="btn-secondary btn-sm" onclick="deleteReport('${r.id}')" style="margin-left:8px;color:#ff0040">🗑️ Eliminar</button></div>` : ''}
-            </div>
-          `).join('');
-        } else {
-          container.innerHTML = '<p>Sin reportes</p>';
-        }
-      } catch (err) {
-        console.error('Error loadReportes:', err);
-      }
+      const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
+      const container = document.getElementById('reportes-list');
+      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
+      
+      container.innerHTML = data?.map(r => `
+        <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
+          <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+            <span class="report-urgencia" style="background:${colors[r.urgencia] || '#fff'}">${r.urgencia.toUpperCase()}</span>
+            <span style="font-size:0.8rem; color:#888; text-transform:uppercase">${r.estado}</span>
+          </div>
+          <h4 style="margin-bottom:8px;">${r.titulo}</h4>
+          <p style="font-size:0.9rem; color:#b0b0c0; margin-bottom:10px;">${r.descripcion}</p>
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <small style="color:#666"> ${r.nombre_usuario}</small>
+            ${App.isAdmin && r.estado !== 'cerrado' ? 
+              `<div style="display:flex; gap:5px;">
+                <button class="btn-sm btn-primary" onclick="closeReport('${r.id}')">✅ Cerrar</button>
+                <button class="btn-sm btn-danger" onclick="deleteReport('${r.id}')">🗑️ Borrar</button>
+              </div>` : ''}
+          </div>
+        </div>
+      `).join('') || '<p>Sin reportes</p>';
+    }
+
+    async function loadBitacora() {
+      if (!App.supabase) return;
+      const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
+      document.getElementById('bitacora-body').innerHTML = data?.map(b => `
+        <tr>
+          <td>${new Date(b.fecha).toLocaleString()}</td>
+          <td>${b.nombre_usuario}</td>
+          <td>${b.titulo}</td>
+          <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+        </tr>`).join('') || '<tr><td colspan="4">Sin registros</td></tr>';
     }
 
     async function loadInventory() {
       if (!App.supabase) return;
-      try {
-        const { data } = await App.supabase.from('inventario').select('*');
-        const tbody = document.getElementById('inventory-body');
-        if (!tbody) return;
-        
-        if (data && data.length > 0) {
-          tbody.innerHTML = data.map(i => `
-            <tr>
-              <td><code>${i.id}</code></td>
-              <td>${i.nombre}</td>
-              <td>${i.numero_serie || 'N/A'}</td>
-              <td>${i.cantidad}</td>
-              <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
-              <td><span class="status status-${i.estado}">${i.estado}</span></td>
-              <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄 Ver</a>` : '-'}</td>
-              <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬 Ver</button>` : '-'}</td>
-              <td>
-                <button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>
-                ${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}
-              </td>
-            </tr>
-          `).join('');
-        } else {
-          tbody.innerHTML = '<tr><td colspan="10">Sin registros</td></tr>';
-        }
-      } catch (err) {
-        console.error('Error loadInventory:', err);
-      }
+      const { data } = await App.supabase.from('inventario').select('*');
+      document.getElementById('inventory-body').innerHTML = data?.map(i => `
+        <tr>
+          <td><code>${i.id}</code></td>
+          <td>${i.nombre}</td>
+          <td>${i.numero_serie}</td>
+          <td>${i.cantidad}</td>
+          <td><span class="status status-${i.estado}">${i.estado}</span></td>
+          <td>
+            <button class="btn-sm btn-primary" onclick="editItem('${i.id}')">✏️</button>
+            ${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteItem('${i.id}')">🗑️</button>` : ''}
+          </td>
+        </tr>`).join('') || '<tr><td colspan="6">Sin registros</td></tr>';
     }
 
     async function loadMembers() {
       if (!App.supabase) return;
-      if (!App.isAdmin) return;
-      
-      try {
-        const { data } = await App.supabase.from('usuarios').select('*').order('username');
-        const tbody = document.getElementById('miembros-body');
-        if (!tbody) return;
-        
-        if (data && data.length > 0) {
-          tbody.innerHTML = data.map(m => `
-            <tr>
-              <td>${m.id}</td>
-              <td>@${m.username}</td>
-              <td>${m.nombre_completo || '-'}</td>
-              <td><span class="role-badge ${m.rol === 'administrador' ? 'admin' : ''}">${m.rol}</span></td>
-              <td>${m.area || '-'}</td>
-              <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? 
-                `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : '🔒'}</td>
-            </tr>
-          `).join('');
-        } else {
-          tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
-        }
-      } catch (err) {
-        console.error('Error loadMembers:', err);
-      }
+      const { data } = await App.supabase.from('usuarios').select('*');
+      document.getElementById('miembros-body').innerHTML = data?.map(m => `
+        <tr>
+          <td>@${m.username}</td>
+          <td>${m.nombre_completo}</td>
+          <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${m.rol}</span></td>
+          <td>${m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>` : '🔒'}</td>
+        </tr>`).join('') || '<tr><td colspan="4">Sin registros</td></tr>';
     }
 
     async function loadPrestamos() {
       if (!App.supabase) return;
-      console.log('🔄 Cargando préstamos...');
-      
-      try {
-        const itemSelects = document.querySelectorAll('.prestamo-item-select');
-        for (let select of itemSelects) {
-          await loadPrestamoItems(select);
-        }
-        
-        let query;
-        if (App.isAdmin) {
-          query = App.supabase.from('prestamos').select('*');
-        } else {
-          query = App.supabase.from('prestamos').select('*').eq('usuario_id', App.user.id);
-        }
-        
-        const { data } = await query.order('created_at', { ascending: false });
-        
-        const tbody = document.getElementById('prestamos-body');
-        const pendientesBody = document.getElementById('prestamos-pendientes-body');
-        const pendientesSection = document.getElementById('prestamos-pendientes-section');
-        
-        if (tbody) {
-          if (data && data.length > 0) {
-            const misPrestamos = data.filter(p => 
-              App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente'
-            );
-            
-            tbody.innerHTML = misPrestamos.map(l => {
-              const itemsList = l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
-              let acciones = '';
-              
-              if (l.estado === 'autorizado') {
-                acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
-              } else if (l.estado === 'devolucion_pendiente') {
-                acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
-              }
-              
-              return `
-                <tr>
-                  <td><code>${l.id}</code></td>
-                  <td>${itemsList}</td>
-                  <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
-                  <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
-                  <td><span class="status status-${l.estado}">${l.estado}</span></td>
-                  <td>${acciones}</td>
-                </tr>
-              `;
-            }).join('');
-            
-            if (misPrestamos.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
-            }
-          } else {
-            tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
-          }
-        }
-        
-        if (App.isAdmin && pendientesBody && pendientesSection) {
-          const pendientes = data.filter(p => p.estado === 'pendiente');
-          
-          if (pendientes.length > 0) {
-            pendientesSection.hidden = false;
-            pendientesBody.innerHTML = pendientes.map(l => {
-              const itemsList = l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
-              return `
-                <tr>
-                  <td><code>${l.id}</code></td>
-                  <td>${l.nombre_solicitante}</td>
-                  <td>${itemsList}</td>
-                  <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
-                  <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
-                  <td>
-                    <button class="btn-sm btn-success" onclick="authorizeLoan('${l.id}', true)">✅ Autorizar</button>
-                    <button class="btn-sm btn-danger" onclick="authorizeLoan('${l.id}', false)">❌ Denegar</button>
-                  </td>
-                </tr>
-              `;
-            }).join('');
-          } else {
-            pendientesSection.hidden = true;
-          }
-        }
-        
-        if (App.isAdmin && tbody) {
-          const devolucionesPendientes = data.filter(p => p.estado === 'devolucion_pendiente');
-          
-          devolucionesPendientes.forEach(l => {
-            const row = document.createElement('tr');
-            const itemsList = l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
-            row.innerHTML = `
-              <td><code>${l.id}</code></td>
-              <td>${itemsList}</td>
-              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
-              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
-              <td><span class="status status-devolucion_pendiente">⏳ Devolución Pendiente</span></td>
-              <td><button class="btn-sm btn-success" onclick="confirmReturn('${l.id}')">✅ Confirmar Devolución</button></td>
-            `;
-            tbody.appendChild(row);
-          });
-        }
-        
-      } catch (err) {
-        console.error('Error loadPrestamos:', err);
-      }
+      const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
+      document.getElementById('prestamos-body').innerHTML = data?.map(l => {
+        const items = l.items?.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+        return `<tr>
+          <td>${l.id}</td>
+          <td>${l.nombre_solicitante}</td>
+          <td>${items}</td>
+          <td><span class="status status-${l.estado}">${l.estado}</span></td>
+          <td>${l.estado === 'pendiente' ? `<button class="btn-sm btn-primary" onclick="authorizeLoan('${l.id}')">✅</button>` : '-'}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="5">Sin registros</td></tr>';
     }
 
-    async function loadPrestamoItems(selectElement) {
-      if (!App.supabase) return;
-      try {
-        const { data } = await App.supabase
-          .from('inventario')
-          .select('id, nombre, cantidad')
-          .gt('cantidad', 0);
-        
-        if (data && data.length > 0) {
-          selectElement.innerHTML = '<option value="">Seleccionar item...</option>' + 
-            data.map(item => `<option value="${item.id}" data-stock="${item.cantidad}">${item.nombre} (Disp: ${item.cantidad})</option>`).join('');
-        } else {
-          selectElement.innerHTML = '<option value="">Sin items disponibles</option>';
-        }
-      } catch (err) {
-        console.error('Error cargando items:', err);
-        selectElement.innerHTML = '<option value="">Error al cargar</option>';
-      }
-    }
-
-    // === FUNCIONES GLOBALES ===
-    window.editItem = async function(id) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      try {
-        const { data: item, error } = await App.supabase
-          .from('inventario')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (error || !item) {
-          return showToast('Item no encontrado', 'error');
-        }
-        
-        const modal = document.getElementById('item-modal');
-        if (!modal) return showToast('Modal no encontrado', 'error');
-        
-        document.getElementById('modal-title').textContent = '✏️ Editar: ' + item.nombre;
-        document.getElementById('item-id').value = item.id;
-        document.getElementById('item-nombre').value = item.nombre || '';
-        document.getElementById('item-serie').value = item.numero_serie || '';
-        document.getElementById('item-cantidad').value = item.cantidad || 1;
-        document.getElementById('item-funciona').value = item.funciona || 'desconocido';
-        document.getElementById('item-estado').value = item.estado || 'disponible';
-        document.getElementById('item-categoria').value = item.categoria || 'otros';
-        document.getElementById('item-datasheet').value = item.datasheet || '';
-        document.getElementById('item-comentarios').value = item.comentarios || '';
-        document.getElementById('item-foto').value = item.foto_url || '';
-        document.getElementById('item-error').textContent = '';
-        
-        modal.classList.remove('hidden');
-        modal.classList.add('active');
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
-    };
-
-    window.viewComments = function(txt) {
-      if (txt && txt.trim()) alert('📝 COMENTARIOS:\n\n' + txt);
-      else showToast('Sin comentarios', 'info');
-    };
-
-    window.deleteItem = async function(id) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      if (!confirm('¿Eliminar?')) return;
-      try {
-        const { error } = await App.supabase.from('inventario').delete().eq('id', id);
-        if (error) throw error;
-        showToast('🗑️ Eliminado', 'success');
-        loadInventory();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
-    };
-
-    window.deleteBitacora = async function(id) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      if (!confirm('¿Eliminar?')) return;
-      try {
-        await App.supabase.from('bitacoras').delete().eq('id', id);
-        showToast('🗑️ Eliminado', 'success');
-        loadBitacora();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
-    };
-
-    window.deleteReport = async function(id) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+    // === ACCIONES ===
+    window.deleteReport = async (id) => {
       if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
-      if (!confirm('¿Eliminar este reporte permanentemente?')) return;
-      try {
+      if (confirm('¿Eliminar reporte permanentemente?')) {
         await App.supabase.from('reportes').delete().eq('id', id);
-        showToast('🗑️ Reporte eliminado', 'success');
-        loadReportes();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
+        showToast('️ Reporte eliminado', 'success');
+        loadReportes(); loadDashboard();
       }
     };
 
-    window.deleteMember = async function(username) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      if (!confirm(`¿Eliminar a ${username}?`)) return;
-      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
-      try {
-        await App.supabase.from('usuarios').delete().eq('username', username);
-        showToast('🗑️ Eliminado', 'success');
-        loadMembers();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
+    window.deleteBitacora = async (id) => {
+      if (confirm('¿Eliminar?')) {
+        await App.supabase.from('bitacoras').delete().eq('id', id);
+        loadBitacora(); loadDashboard();
       }
     };
 
-    window.closeReport = async function(id) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      try {
-        await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
-        showToast('✅ Cerrado', 'success');
-        loadReportes();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
+    window.closeReport = async (id) => {
+      await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
+      loadReportes(); loadDashboard();
+    };
+
+    window.editItem = async (id) => {
+      const { data } = await App.supabase.from('inventario').select('*').eq('id', id).single();
+      if (data) {
+        document.getElementById('modal-title').textContent = '✏️ Editar: ' + data.nombre;
+        document.getElementById('item-id').value = data.id;
+        document.getElementById('item-nombre').value = data.nombre;
+        document.getElementById('item-serie').value = data.numero_serie;
+        document.getElementById('item-cantidad').value = data.cantidad;
+        document.getElementById('item-funciona').value = data.funciona;
+        document.getElementById('item-estado').value = data.estado;
+        document.getElementById('item-comentarios').value = data.comentarios || '';
+        document.getElementById('item-modal').classList.add('active');
       }
     };
 
-    window.addPrestamoItem = function() {
-      const container = document.getElementById('prestamo-items-container');
-      if (!container) return;
-      
-      const newRow = document.createElement('div');
-      newRow.className = 'prestamo-item-row';
-      newRow.innerHTML = `
-        <select class="prestamo-item-select" required>
-          <option value="">Cargando...</option>
-        </select>
-        <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-        <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
-      `;
-      container.appendChild(newRow);
-      loadPrestamoItems(newRow.querySelector('.prestamo-item-select'));
-    };
-
-    window.removePrestamoItem = function(btn) {
-      const rows = document.querySelectorAll('.prestamo-item-row');
-      if (rows.length > 1) {
-        btn.parentElement.remove();
-      } else {
-        showToast('Debe haber al menos un item', 'warning');
-      }
-    };
-
-    window.authorizeLoan = async function(loanId, authorize) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      if (!confirm(`${authorize ? 'AUTORIZAR' : 'DENEGAR'} este préstamo?`)) return;
-      
-      try {
-        if (authorize) {
-          const { data: prestamo } = await App.supabase
-            .from('prestamos')
-            .select('items')
-            .eq('id', loanId)
-            .single();
-          
-          if (prestamo && prestamo.items) {
-            for (let item of prestamo.items) {
-              await App.supabase.rpc('descontar_stock', {
-                p_item_id: item.item_id,
-                p_cantidad: item.cantidad
-              });
-            }
-          }
-          
-          await App.supabase.from('prestamos').update({
-            estado: 'autorizado',
-            autorizado_por: App.user.id,
-            fecha_autorizacion: new Date().toISOString()
-          }).eq('id', loanId);
-          
-          showToast('✅ Préstamo autorizado', 'success');
-        } else {
-          await App.supabase.from('prestamos').update({
-            estado: 'denegado',
-            autorizado_por: App.user.id,
-            fecha_autorizacion: new Date().toISOString()
-          }).eq('id', loanId);
-          
-          showToast('❌ Préstamo denegado', 'success');
-        }
-        
-        loadPrestamos();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
-    };
-
-    window.requestReturn = async function(loanId) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      if (!confirm('¿Solicitar devolución de este préstamo?')) return;
-      
-      try {
-        await App.supabase.from('prestamos').update({
-          estado: 'devolucion_pendiente',
-          fecha_devolucion_real: new Date().toISOString()
-        }).eq('id', loanId);
-        
-        showToast('📋 Devolución solicitada. Espera confirmación del administrador', 'success');
-        loadPrestamos();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
-    };
-
-    window.confirmReturn = async function(loanId) {
-      if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-      if (!confirm('¿Confirmar que los items fueron devueltos en buen estado?')) return;
-      
-      try {
-        const { data: prestamo } = await App.supabase
-          .from('prestamos')
-          .select('items')
-          .eq('id', loanId)
-          .single();
-        
-        if (prestamo && prestamo.items) {
-          for (let item of prestamo.items) {
-            await App.supabase.rpc('regresar_stock', {
-              p_item_id: item.item_id,
-              p_cantidad: item.cantidad
-            });
-          }
-        }
-        
-        await App.supabase.from('prestamos').update({
-          estado: 'devuelto',
-          confirmado_por: App.user.id,
-          fecha_confirmacion: new Date().toISOString()
-        }).eq('id', loanId);
-        
-        showToast('✅ Devolución confirmada', 'success');
-        loadPrestamos();
+    window.deleteItem = async (id) => {
+      if (confirm('¿Eliminar?')) {
+        await App.supabase.from('inventario').delete().eq('id', id);
         loadInventory();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
       }
+    };
+    
+    window.deleteMember = async (u) => {
+      if (confirm('¿Eliminar?')) {
+        await App.supabase.from('usuarios').delete().eq('username', u);
+        loadMembers();
+      }
+    };
+
+    window.authorizeLoan = async (id) => {
+      await App.supabase.from('prestamos').update({ estado: 'autorizado' }).eq('id', id);
+      loadPrestamos(); loadDashboard();
     };
 
     function showToast(msg, type = 'info') {
@@ -1301,11 +713,7 @@
       d.className = `toast ${type}`;
       d.textContent = msg;
       document.body.appendChild(d);
-      setTimeout(() => {
-        d.style.opacity = '0';
-        d.style.transform = 'translateY(20px)';
-        setTimeout(() => d.remove(), 300);
-      }, 3000);
+      setTimeout(() => d.remove(), 3000);
     }
   </script>
 </body>
