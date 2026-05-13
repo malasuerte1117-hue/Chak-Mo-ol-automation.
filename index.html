@@ -24,68 +24,53 @@
       --border-color: #2a2a40;
       --success: #00ff88;
       --warning: #ffaa00;
-      --error: #ff0040;
       --font-display: 'Orbitron', sans-serif;
       --font-body: 'Roboto', sans-serif;
       --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       --radius-sm: 8px;
       --radius-md: 12px;
-      --radius-lg: 16px;
     }
 
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Loading */
     .loading-overlay { position: fixed; inset: 0; background: var(--bg-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
     .loader { width: 60px; height: 60px; border: 3px solid var(--border-color); border-top-color: var(--cyan-neon); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
-    .loading-overlay p { color: var(--text-secondary); font-family: var(--font-display); font-size: 0.9rem; }
+    .loading-overlay p { color: var(--text-secondary); font-family: var(--font-display); }
 
-    /* Auth */
     .auth-section { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .auth-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 32px 24px; width: 100%; max-width: 420px; }
+    .auth-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 32px 24px; width: 100%; max-width: 420px; }
     .logo-title { font-family: var(--font-display); font-size: 1.8rem; color: var(--cyan-neon); text-align: center; margin-bottom: 16px; }
 
-    /* Header */
     .main-header { position: fixed; top: 0; left: 0; right: 0; height: 64px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 100; }
-    
     .header-left { display: flex; align-items: center; gap: 12px; }
-    .menu-btn { background: none; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 1.4rem; cursor: pointer; padding: 8px 12px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; transition: var(--transition); }
-    .menu-btn:hover { background: var(--bg-hover); color: var(--cyan-neon); }
-    
+    .menu-btn { background: none; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 1.4rem; cursor: pointer; padding: 8px 12px; border-radius: var(--radius-sm); display: none; }
     .brand h2 { font-family: var(--font-display); color: var(--cyan-neon); font-size: 1.1rem; }
     .badge { background: linear-gradient(135deg, var(--gold-accent), #b8962e); color: #000; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; margin-left: 6px; font-weight: 700; }
-    
     .header-right { display: flex; align-items: center; gap: 10px; }
     #user-display { font-size: 0.85rem; font-weight: 500; }
     .role-badge { padding: 4px 10px; border-radius: 15px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
-    .role-badge.admin { background: var(--red-alert); color: #fff; box-shadow: 0 0 10px var(--red-glow); }
-    #logout-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; transition: var(--transition); }
+    .role-badge.admin { background: var(--red-alert); color: #fff; }
+    #logout-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; }
     #logout-btn:hover { border-color: var(--red-alert); color: var(--red-alert); }
 
-    /* Sidebar */
     .sidebar { position: fixed; top: 64px; left: -260px; width: 240px; height: calc(100vh - 64px); background: var(--bg-secondary); border-right: 1px solid var(--border-color); z-index: 99; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
     .sidebar.open { left: 0; }
-    
     .nav-menu { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
-    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; text-align: left; min-height: 48px; font-size: 0.9rem; transition: var(--transition); }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; text-align: left; min-height: 48px; font-size: 0.9rem; }
     .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
     .nav-item.active { background: rgba(0, 212, 255, 0.1); color: var(--cyan-neon); border-left: 3px solid var(--cyan-neon); font-weight: 600; }
-    
     .sidebar-footer { padding: 20px; border-top: 1px solid var(--border-color); text-align: center; }
     .eslogan-small { color: var(--gold-accent); font-size: 0.7rem; font-style: italic; }
 
-    /* Overlay */
     .sidebar-overlay { position: fixed; inset: 0; top: 64px; background: rgba(0,0,0,0.6); z-index: 98; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
     .sidebar-overlay.active { opacity: 1; visibility: visible; }
 
-    /* Main Content */
-    .main-content { padding: 80px 16px 20px; transition: var(--transition); }
+    .main-content { padding: 80px 16px 20px; }
 
-    /* Desktop styles */
     @media (min-width: 768px) {
       .menu-btn { display: none; }
       .sidebar { left: 0; }
@@ -93,12 +78,10 @@
       .main-content { padding-left: 256px; }
     }
 
-    /* Mobile */
     @media (max-width: 767px) {
       .menu-btn { display: flex !important; }
       .sidebar { left: -260px; }
       .sidebar.open { left: 0; }
-      .main-content { margin-left: 0; }
       #user-display { display: none; }
     }
 
@@ -106,7 +89,6 @@
     .view.active { display: block; }
     .view-title { font-family: var(--font-display); color: var(--cyan-neon); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); font-size: 1.4rem; }
 
-    /* Stats */
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
     @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
     
@@ -115,7 +97,6 @@
     .stat-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
     .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
 
-    /* Dashboard */
     .dashboard-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; }
     .dashboard-section h3 { font-family: var(--font-display); margin-bottom: 16px; color: var(--text-secondary); font-size: 1rem; }
     
@@ -130,7 +111,6 @@
     .activity-item { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; border-left: 3px solid var(--cyan-neon); font-size: 0.85rem; }
     .activity-item .time { color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 4px; }
 
-    /* Tables */
     .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
     .data-table { width: 100%; border-collapse: collapse; min-width: 700px; }
     .data-table th { background: var(--bg-secondary); padding: 12px; text-align: left; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
@@ -142,9 +122,7 @@
     .status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
     .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
     .status-desconocido, .status-prestado { background: rgba(255,170,0,0.15); color: var(--warning); }
-    .status-mantenimiento { background: rgba(0,212,255,0.15); color: var(--cyan-neon); }
 
-    /* Reports */
     .reportes-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
     @media (min-width: 600px) { .reportes-grid { grid-template-columns: repeat(2, 1fr); } }
     
@@ -155,7 +133,6 @@
     .report-urgencia.medio { background: var(--warning); }
     .report-urgencia.bajo { background: var(--success); }
 
-    /* Forms */
     .form-group { margin-bottom: 14px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
@@ -164,7 +141,7 @@
     input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; color: var(--text-primary); width: 100%; font-size: 0.95rem; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 0 2px var(--cyan-glow); }
     
-    .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; min-height: 44px; transition: var(--transition); }
+    .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; min-height: 44px; }
     .btn-primary { background: linear-gradient(135deg, var(--cyan-neon), #00a3cc); color: #000; }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px var(--cyan-glow); }
     .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
@@ -174,14 +151,12 @@
     .btn-full { width: 100%; }
     .mt-2 { margin-top: 16px; }
 
-    /* Modal */
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
     .modal.active { display: flex; }
-    .modal-content { background: var(--bg-card); padding: 24px 20px; border-radius: var(--radius-lg); width: 100%; max-width: 500px; position: relative; max-height: 85vh; overflow-y: auto; animation: slide-up 0.3s ease; }
+    .modal-content { background: var(--bg-card); padding: 24px 20px; border-radius: var(--radius-md); width: 100%; max-width: 500px; position: relative; max-height: 85vh; overflow-y: auto; animation: slide-up 0.3s ease; }
     .modal-close { position: absolute; top: 12px; right: 16px; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); background: none; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
     .modal-close:hover { color: var(--red-alert); }
 
-    /* Toast */
     .toast { position: fixed; bottom: 16px; left: 16px; right: 16px; background: var(--bg-card); border-left: 4px solid var(--cyan-neon); padding: 12px 16px; border-radius: var(--radius-sm); z-index: 2000; animation: slide-up 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.5); font-size: 0.9rem; }
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--red-alert); }
@@ -281,7 +256,7 @@
       </div>
 
       <div id="view-inventario" class="view" hidden>
-        <h2 class="view-title"> Inventario</h2>
+        <h2 class="view-title">📦 Inventario</h2>
         <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
           <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
           <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
@@ -427,27 +402,12 @@
         document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
       }
       
-      // Botón menú
-      if (menuToggle) {
-        menuToggle.addEventListener('click', (e) => {
-          e.stopPropagation();
-          toggleMenu();
-        });
-      }
-      
-      // Cerrar al tocar overlay
-      if (overlay) {
-        overlay.addEventListener('click', toggleMenu);
-      }
-      
-      // Cerrar al hacer scroll en móvil
+      if (menuToggle) menuToggle.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(); });
+      if (overlay) overlay.addEventListener('click', toggleMenu);
       window.addEventListener('scroll', () => {
-        if (window.innerWidth < 768 && sidebar.classList.contains('open')) {
-          toggleMenu();
-        }
+        if (window.innerWidth < 768 && sidebar.classList.contains('open')) toggleMenu();
       });
 
-      // Login
       document.getElementById('login-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const u = document.getElementById('username').value.trim().toLowerCase();
@@ -459,25 +419,21 @@
         try {
           const { data } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
           if (data) loginSuccess(data);
-          else {
-            document.getElementById('login-error').textContent = '❌ Credenciales incorrectas';
-          }
+          else document.getElementById('login-error').textContent = '❌ Credenciales incorrectas';
         } catch (err) {
           document.getElementById('login-error').textContent = 'Error de conexión';
         }
       });
 
-      // Logout
       document.getElementById('logout-btn')?.addEventListener('click', () => location.reload());
 
-      // Navegación
       document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const view = e.currentTarget.dataset.view;
           if (!view) return;
           
           if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) {
-            showToast(' Solo administradores', 'error');
+            showToast('🔐 Solo administradores', 'error');
             return;
           }
           
@@ -488,7 +444,6 @@
           if (target) { target.classList.add('active'); target.hidden = false; }
           e.currentTarget.classList.add('active');
           
-          // Cerrar menú en móvil
           if (window.innerWidth < 768) {
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
@@ -504,7 +459,6 @@
         });
       });
 
-      // Forms
       document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -541,7 +495,6 @@
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
       });
 
-      // Modal
       const modal = document.getElementById('item-modal');
       document.querySelector('.modal-close')?.addEventListener('click', () => modal.classList.remove('active'));
       modal?.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
@@ -609,175 +562,290 @@
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
 
-        const {  bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+        // Bitácoras recientes
+        const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
         const bitList = document.getElementById('dashboard-bitacora-list');
         if (bitList) {
-          bitList.innerHTML = bits?.length ? bits.map(b => `
-            <li class="activity-item">
-              <span class="time">${new Date(b.fecha).toLocaleString()}</span>
-              <strong>${b.titulo}</strong>
-              <div style="font-size:0.8rem;color:#888;margin-top:4px">${(b.actividad||'').substring(0,50)}...</div>
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin registros</li>';
+          if (bits && bits.length > 0) {
+            bitList.innerHTML = bits.map(b => `
+              <li class="activity-item">
+                <span class="time">${new Date(b.fecha).toLocaleString()}</span>
+                <strong>${b.titulo || 'Sin título'}</strong>
+                <div style="font-size:0.8rem;color:#888;margin-top:4px">${(b.actividad||'').substring(0,50)}${(b.actividad||'').length > 50 ? '...' : ''}</div>
+              </li>`).join('');
+          } else {
+            bitList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin registros</li>';
+          }
         }
 
+        // Reportes recientes
         const {  reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
         if (repList) {
-          repList.innerHTML = reps?.length ? reps.map(r => `
-            <li class="activity-item" style="border-left-color:${colors[r.urgencia]||'#00d4ff'}">
-              <span class="time">${new Date(r.created_at).toLocaleString()}</span>
-              <strong style="color:${colors[r.urgencia]||'#00d4ff'}">[${r.urgencia?.toUpperCase()}]</strong>
-              <span>${r.titulo}</span>
-              ${r.estado==='cerrado'?'<span style="color:#28a745;float:right;font-size:0.75rem">✓</span>':''}
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin reportes</li>';
+          if (reps && reps.length > 0) {
+            repList.innerHTML = reps.map(r => `
+              <li class="activity-item" style="border-left-color:${colors[r.urgencia]||'#00d4ff'}">
+                <span class="time">${new Date(r.created_at).toLocaleString()}</span>
+                <strong style="color:${colors[r.urgencia]||'#00d4ff'}">[${(r.urgencia||'N/A').toUpperCase()}]</strong>
+                <span>${r.titulo || 'Sin título'}</span>
+                ${r.estado==='cerrado'?'<span style="color:#28a745;float:right;font-size:0.75rem">✓</span>':''}
+              </li>`).join('');
+          } else {
+            repList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin reportes</li>';
+          }
         }
 
-        const {  prestamos } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
+        // Préstamos recientes
+        const { data: prestamos } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
         const presList = document.getElementById('dashboard-prestamos-list');
         if (presList) {
-          presList.innerHTML = prestamos?.length ? prestamos.map(p => `
-            <li class="activity-item">
-              <span class="time">📤 ${p.nombre_solicitante}</span>
-              <div style="font-size:0.8rem">${p.items?.map(i=>i.nombre).join(', ')||'Sin items'}</div>
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin préstamos</li>';
+          if (prestamos && prestamos.length > 0) {
+            presList.innerHTML = prestamos.map(p => `
+              <li class="activity-item">
+                <span class="time">📤 ${p.nombre_solicitante || 'Desconocido'}</span>
+                <div style="font-size:0.8rem">${p.items?.map(i=>i.nombre).join(', ')||'Sin items'}</div>
+              </li>`).join('');
+          } else {
+            presList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin préstamos</li>';
+          }
         }
 
+        // Devoluciones recientes
         const {  devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
         const devList = document.getElementById('dashboard-devoluciones-list');
         if (devList) {
-          devList.innerHTML = devs?.length ? devs.map(d => `
-            <li class="activity-item">
-              <span class="time">📥 ${d.nombre_solicitante}</span>
-              <div style="font-size:0.8rem">${d.items?.map(i=>i.nombre).join(', ')||'Sin items'}</div>
-              <small style="color:#28a745">✓ Devuelto</small>
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones</li>';
+          if (devs && devs.length > 0) {
+            devList.innerHTML = devs.map(d => `
+              <li class="activity-item">
+                <span class="time">📥 ${d.nombre_solicitante || 'Desconocido'}</span>
+                <div style="font-size:0.8rem">${d.items?.map(i=>i.nombre).join(', ')||'Sin items'}</div>
+                <small style="color:#28a745">✓ Devuelto</small>
+              </li>`).join('');
+          } else {
+            devList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones</li>';
+          }
         }
-      } catch (err) { console.error(err); }
+      } catch (err) { 
+        console.error('Error dashboard:', err); 
+      }
     }
 
     async function loadReportes() {
       if (!App.supabase) return;
-      const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
-      const container = document.getElementById('reportes-list');
-      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
-      
-      container.innerHTML = data?.map(r => `
-        <div class="report-card ${r.estado==='cerrado'?'closed':''}">
-          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-            <span class="report-urgencia" style="background:${colors[r.urgencia]}">${r.urgencia?.toUpperCase()}</span>
-            <span style="font-size:0.75rem;color:#888">${r.estado}</span>
-          </div>
-          <h4 style="margin-bottom:6px;">${r.titulo}</h4>
-          <p style="font-size:0.85rem;color:#b0b0c0;margin-bottom:10px;">${r.descripcion}</p>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <small style="color:#666">👤 ${r.nombre_usuario}</small>
-            ${App.isAdmin && r.estado!=='cerrado'?`
-              <div style="display:flex;gap:6px;">
-                <button class="btn-sm btn-primary" onclick="closeReport('${r.id}')">✅</button>
-                <button class="btn-sm btn-danger" onclick="deleteReport('${r.id}')">🗑️</button>
-              </div>`:''}
-          </div>
-        </div>`).join('') || '<p style="text-align:center;color:#666;">Sin reportes</p>';
+      try {
+        const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
+        const container = document.getElementById('reportes-list');
+        const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
+        
+        if (container) {
+          if (data && data.length > 0) {
+            container.innerHTML = data.map(r => `
+              <div class="report-card ${r.estado==='cerrado'?'closed':''}">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                  <span class="report-urgencia" style="background:${colors[r.urgencia]||'#fff'}">${(r.urgencia||'N/A').toUpperCase()}</span>
+                  <span style="font-size:0.75rem;color:#888">${r.estado || 'abierto'}</span>
+                </div>
+                <h4 style="margin-bottom:6px;">${r.titulo || 'Sin título'}</h4>
+                <p style="font-size:0.85rem;color:#b0b0c0;margin-bottom:10px;">${r.descripcion || 'Sin descripción'}</p>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <small style="color:#666">👤 ${r.nombre_usuario || 'Desconocido'}</small>
+                  ${App.isAdmin ? `
+                    <div style="display:flex;gap:6px;">
+                      ${r.estado!=='cerrado' ? `<button class="btn-sm btn-primary" onclick="closeReport('${r.id}')">✅ Cerrar</button>` : ''}
+                      <button class="btn-sm btn-danger" onclick="deleteReport('${r.id}')">🗑️ Eliminar</button>
+                    </div>` : ''}
+                </div>
+              </div>`).join('');
+          } else {
+            container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;">Sin reportes</p>';
+          }
+        }
+      } catch (err) {
+        console.error('Error loadReportes:', err);
+      }
     }
 
     async function loadBitacora() {
       if (!App.supabase) return;
-      const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
-      document.getElementById('bitacora-body').innerHTML = data?.map(b => `
-        <tr>
-          <td>${new Date(b.fecha).toLocaleString()}</td>
-          <td>${b.nombre_usuario}</td>
-          <td>${b.titulo}</td>
-          <td>${App.isAdmin?`<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>`:'-'}</td>
-        </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:#666;">Sin registros</td></tr>';
+      try {
+        const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
+        const tbody = document.getElementById('bitacora-body');
+        if (tbody) {
+          if (data && data.length > 0) {
+            tbody.innerHTML = data.map(b => `
+              <tr>
+                <td>${new Date(b.fecha).toLocaleString()}</td>
+                <td>${b.nombre_usuario || 'Desconocido'}</td>
+                <td>${b.titulo || 'Sin título'}</td>
+                <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+              </tr>`).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error('Error loadBitacora:', err);
+      }
     }
 
     async function loadInventory() {
       if (!App.supabase) return;
-      const { data } = await App.supabase.from('inventario').select('*');
-      document.getElementById('inventory-body').innerHTML = data?.map(i => `
-        <tr>
-          <td><code>${i.id}</code></td>
-          <td>${i.nombre}</td>
-          <td>${i.numero_serie}</td>
-          <td>${i.cantidad}</td>
-          <td><span class="status status-${i.estado}">${i.estado}</span></td>
-          <td>
-            <button class="btn-sm btn-primary" onclick="editItem('${i.id}')">✏️</button>
-            ${App.isAdmin?`<button class="btn-sm btn-danger" onclick="deleteItem('${i.id}')">🗑️</button>`:''}
-          </td>
-        </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:#666;">Sin registros</td></tr>';
+      try {
+        const { data } = await App.supabase.from('inventario').select('*');
+        const tbody = document.getElementById('inventory-body');
+        if (tbody) {
+          if (data && data.length > 0) {
+            tbody.innerHTML = data.map(i => `
+              <tr>
+                <td><code>${i.id || 'N/A'}</code></td>
+                <td>${i.nombre || 'Sin nombre'}</td>
+                <td>${i.numero_serie || 'N/A'}</td>
+                <td>${i.cantidad || 0}</td>
+                <td><span class="status status-${i.estado || 'disponible'}">${i.estado || 'disponible'}</span></td>
+                <td>
+                  <button class="btn-sm btn-primary" onclick="editItem('${i.id}')">✏️</button>
+                  ${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteItem('${i.id}')" style="margin-left:4px;">🗑️</button>` : ''}
+                </td>
+              </tr>`).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error('Error loadInventory:', err);
+      }
     }
 
     async function loadMembers() {
-      if (!App.supabase) return;
-      const { data } = await App.supabase.from('usuarios').select('*');
-      document.getElementById('miembros-body').innerHTML = data?.map(m => `
-        <tr>
-          <td>@${m.username}</td>
-          <td>${m.nombre_completo}</td>
-          <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${m.rol}</span></td>
-          <td>${m.username!=='luis'&&m.username!=='sixto'?`<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>`:'🔒'}</td>
-        </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:#666;">Sin registros</td></tr>';
+      if (!App.supabase || !App.isAdmin) return;
+      try {
+        const { data } = await App.supabase.from('usuarios').select('*').order('username');
+        const tbody = document.getElementById('miembros-body');
+        if (tbody) {
+          if (data && data.length > 0) {
+            tbody.innerHTML = data.map(m => `
+              <tr>
+                <td>@${m.username || 'N/A'}</td>
+                <td>${m.nombre_completo || m.nombre || '-'}</td>
+                <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${m.rol || 'miembro'}</span></td>
+                <td>${m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>` : '🔒'}</td>
+              </tr>`).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error('Error loadMembers:', err);
+      }
     }
 
     async function loadPrestamos() {
-      if (!App.supabase) return;
-      const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
-      document.getElementById('prestamos-body').innerHTML = data?.map(l => `
-        <tr>
-          <td>${l.id}</td>
-          <td>${l.nombre_solicitante}</td>
-          <td>${l.items?.map(i=>`${i.nombre} (x${i.cantidad})`).join(', ')||'-'}</td>
-          <td><span class="status status-${l.estado}">${l.estado}</span></td>
-        </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:#666;">Sin registros</td></tr>';
+      if (!App.supabase || !App.isAdmin) return;
+      try {
+        const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
+        const tbody = document.getElementById('prestamos-body');
+        if (tbody) {
+          if (data && data.length > 0) {
+            tbody.innerHTML = data.map(l => `
+              <tr>
+                <td><code>${l.id || 'N/A'}</code></td>
+                <td>${l.nombre_solicitante || 'Desconocido'}</td>
+                <td>${l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items'}</td>
+                <td><span class="status status-${l.estado || 'pendiente'}">${l.estado || 'pendiente'}</span></td>
+              </tr>`).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+          }
+        }
+      } catch (err) {
+        console.error('Error loadPrestamos:', err);
+      }
     }
 
+    // Funciones globales
     window.deleteReport = async (id) => {
-      if (!App.isAdmin) return showToast('🔐 Solo admins', 'error');
-      if (!confirm('¿Eliminar?')) return;
-      await App.supabase.from('reportes').delete().eq('id', id);
-      showToast('️ Eliminado', 'success');
-      loadReportes(); loadDashboard();
+      if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
+      if (!confirm('¿Eliminar este reporte permanentemente?')) return;
+      try {
+        await App.supabase.from('reportes').delete().eq('id', id);
+        showToast('🗑️ Reporte eliminado', 'success');
+        loadReportes();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     };
 
     window.deleteBitacora = async (id) => {
-      if (!confirm('¿Eliminar?')) return;
-      await App.supabase.from('bitacoras').delete().eq('id', id);
-      loadBitacora(); loadDashboard();
+      if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
+      if (!confirm('¿Eliminar esta bitácora?')) return;
+      try {
+        await App.supabase.from('bitacoras').delete().eq('id', id);
+        showToast('🗑️ Eliminada', 'success');
+        loadBitacora();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     };
 
     window.closeReport = async (id) => {
-      await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
-      loadReportes(); loadDashboard();
+      try {
+        await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
+        showToast('✅ Reporte cerrado', 'success');
+        loadReportes();
+        loadDashboard();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     };
 
     window.editItem = async (id) => {
-      const { data } = await App.supabase.from('inventario').select('*').eq('id', id).single();
-      if (data) {
-        document.getElementById('modal-title').textContent = '✏️ ' + data.nombre;
+      try {
+        const { data, error } = await App.supabase.from('inventario').select('*').eq('id', id).single();
+        if (error || !data) {
+          showToast('Item no encontrado', 'error');
+          return;
+        }
+        
+        const modal = document.getElementById('item-modal');
+        document.getElementById('modal-title').textContent = '✏️ Editar: ' + data.nombre;
         document.getElementById('item-id').value = data.id;
-        document.getElementById('item-nombre').value = data.nombre;
-        document.getElementById('item-serie').value = data.numero_serie;
-        document.getElementById('item-cantidad').value = data.cantidad;
-        document.getElementById('item-funciona').value = data.funciona;
-        document.getElementById('item-estado').value = data.estado;
+        document.getElementById('item-nombre').value = data.nombre || '';
+        document.getElementById('item-serie').value = data.numero_serie || '';
+        document.getElementById('item-cantidad').value = data.cantidad || 1;
+        document.getElementById('item-funciona').value = data.funciona || 'desconocido';
+        document.getElementById('item-estado').value = data.estado || 'disponible';
         document.getElementById('item-comentarios').value = data.comentarios || '';
-        document.getElementById('item-modal').classList.add('active');
+        
+        if (modal) modal.classList.add('active');
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
       }
     };
 
     window.deleteItem = async (id) => {
-      if (!confirm('¿Eliminar?')) return;
-      await App.supabase.from('inventario').delete().eq('id', id);
-      loadInventory();
+      if (!confirm('¿Eliminar este item?')) return;
+      try {
+        await App.supabase.from('inventario').delete().eq('id', id);
+        showToast('🗑️ Eliminado', 'success');
+        loadInventory();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     };
     
-    window.deleteMember = async (u) => {
-      if (!confirm('¿Eliminar?')) return;
-      await App.supabase.from('usuarios').delete().eq('username', u);
-      loadMembers();
+    window.deleteMember = async (username) => {
+      if (!confirm(`¿Eliminar a ${username}?`)) return;
+      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins principales', 'error');
+      try {
+        await App.supabase.from('usuarios').delete().eq('username', username);
+        showToast('🗑️ Eliminado', 'success');
+        loadMembers();
+      } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     };
 
     function showToast(msg, type = 'info') {
