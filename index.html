@@ -606,7 +606,7 @@
           }
           
           // Verificar si el usuario ya existe
-          const {  existing } = await App.supabase.from('usuarios').select('username').eq('username', username).single();
+          const { data: existing } = await App.supabase.from('usuarios').select('username').eq('username', username).single();
           if (existing) {
             showToast('El usuario ya existe', 'error');
             return;
@@ -680,7 +680,7 @@
             fecha_prestamo: fechaInicio,
             fecha_devolucion: fechaDevolucion,
             motivo: document.getElementById('prestamo-motivo').value || '',
-            estado: 'autorizado',
+            estado: 'AUTORIZADO',
             autorizado_por: App.user.id,
             created_at: new Date().toISOString()
           };
@@ -787,21 +787,23 @@
       loadDashboard();
     }
 
+    // === DASHBOARD CORREGIDO ===
     async function loadDashboard() {
       if (!App.supabase) return;
       try {
+        // 1. Stats (Corregido para mayúsculas)
         const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
         const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
         const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
-        const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente']);
+        const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente', 'AUTORIZADO', 'PENDIENTE']);
         
         document.getElementById('stat-inventory').textContent = inv || 0;
         document.getElementById('stat-members').textContent = mem || 0;
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
 
-        // BITÁCORAS
-        const {  bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+        // 2. Bitácoras
+        const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
         const bitList = document.getElementById('dashboard-bitacora-list');
         if (bitList) {
           if (bits && bits.length > 0) {
@@ -816,7 +818,7 @@
           }
         }
 
-        // REPORTES
+        // 3. Reportes
         const {  reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
@@ -834,8 +836,8 @@
           }
         }
 
-        // PRÉSTAMOS
-        const {  pres } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
+        // 4. Préstamos (Recent) - Corregido para mayúsculas
+        const { data: pres } = await App.supabase.from('prestamos').select('*').in('estado', ['autorizado', 'AUTORIZADO', 'pendiente', 'PENDIENTE']).order('created_at', { ascending: false }).limit(3);
         const presList = document.getElementById('dashboard-prestamos-list');
         if (presList) {
           if (pres && pres.length > 0) {
@@ -849,8 +851,8 @@
           }
         }
 
-        // DEVOLUCIONES
-        const {  devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
+        // 5. Devoluciones - Corregido para mayúsculas
+        const {  devs } = await App.supabase.from('prestamos').select('*').in('estado', ['devuelto', 'DEVUELTO']).order('fecha_confirmacion', { ascending: false }).limit(3);
         const devList = document.getElementById('dashboard-devoluciones-list');
         if (devList) {
           if (devs && devs.length > 0) {
@@ -864,7 +866,10 @@
             devList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones</li>';
           }
         }
-      } catch (err) { console.error('Error dashboard:', err); }
+
+      } catch (err) { 
+        console.error('Error dashboard:', err); 
+      }
     }
 
     function filterInventory(query) {
@@ -1018,7 +1023,6 @@
         const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById('prestamos-body');
         
-        // Cargar items para el formulario
         await loadPrestamoItems();
         
         if (tbody) {
@@ -1027,11 +1031,13 @@
               const items = l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
               let acciones = '';
               
-              if (l.estado === 'autorizado') {
+              // CORREGIDO: Verificar mayúsculas y minúsculas
+              const estado = (l.estado || '').toUpperCase();
+              if (estado === 'AUTORIZADO') {
                 acciones = `<button class="btn-sm btn-primary" onclick="requestReturn('${l.id}')">🔄 Devolver</button>`;
-              } else if (l.estado === 'devolucion_pendiente') {
+              } else if (estado === 'DEVOLUCION_PENDIENTE' || estado === 'PENDIENTE') {
                 acciones = '<span class="status status-prestado">⏳ Pendiente</span>';
-              } else if (l.estado === 'devuelto') {
+              } else if (estado === 'DEVUELTO') {
                 acciones = '<span style="color:#28a745;font-size:0.8rem">✓ Completado</span>';
               }
               
@@ -1039,7 +1045,7 @@
                 <td><code>${(l.id || '').substring(0,8)}...</code></td>
                 <td>${l.nombre_solicitante || 'Desconocido'}</td>
                 <td>${items}</td>
-                <td><span class="status status-${l.estado || 'pendiente'}">${(l.estado || 'pendiente').toUpperCase()}</span></td>
+                <td><span class="status status-${l.estado || 'pendiente'}">${estado}</span></td>
                 <td>${acciones}</td>
               </tr>`;
             }).join('');
@@ -1089,7 +1095,7 @@
       if (!confirm('¿Confirmar devolución de este préstamo?')) return;
       try {
         await App.supabase.from('prestamos').update({ 
-          estado: 'devuelto',
+          estado: 'DEVUELTO',
           fecha_confirmacion: new Date().toISOString()
         }).eq('id', id);
         showToast('✅ Devolución confirmada', 'success');
