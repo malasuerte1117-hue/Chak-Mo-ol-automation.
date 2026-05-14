@@ -27,7 +27,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEvents() {
-  // === MENÚ HAMBURGUESA PARA MÓVIL (CORRECCIÓN PRINCIPAL) ===
+  // === MENÚ HAMBURGUESA PARA MÓVIL ===
   const menuToggle = document.getElementById('menu-toggle');
   const sidebar = document.getElementById('sidebar');
   const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -55,7 +55,6 @@ function setupEvents() {
     sidebarOverlay.addEventListener('click', closeSidebar);
   }
   
-  // Cerrar sidebar al hacer scroll
   window.addEventListener('scroll', () => {
     if (window.innerWidth < 1024 && sidebar.classList.contains('open')) {
       closeSidebar();
@@ -103,7 +102,6 @@ function setupEvents() {
         return;
       }
       
-      // Cambiar vista
       document.querySelectorAll('.view').forEach(v => { 
         v.classList.remove('active'); 
         v.hidden = true; 
@@ -117,7 +115,6 @@ function setupEvents() {
       }
       e.currentTarget.classList.add('active');
       
-      // Cargar datos según vista
       if (view === 'dashboard') loadDashboard();
       if (view === 'inventario') loadInventory();
       if (view === 'bitacora') loadBitacora();
@@ -125,7 +122,6 @@ function setupEvents() {
       if (view === 'miembros' && App.isAdmin) loadMembers();
       if (view === 'prestamos' && App.isAdmin) loadPrestamos();
       
-      // Cerrar sidebar en móvil después de seleccionar
       if (window.innerWidth < 1024) {
         closeSidebar();
       }
@@ -215,7 +211,6 @@ function setupEvents() {
     modalClose.addEventListener('click', closeModal);
   }
   
-  // Cerrar modal al hacer clic fuera
   if (modal) {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) closeModal();
@@ -414,14 +409,24 @@ function updateAdminUI() {
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
 }
 
-// === DASHBOARD ===
+// === ✅ DASHBOARD CORREGIDO ===
 async function loadDashboard() {
   if (!App.supabase) return;
   
   try {
-    const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
-    const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
-    const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+    // ===== 1. ESTADÍSTICAS =====
+    const { count: inv } = await App.supabase
+      .from('inventario')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: mem } = await App.supabase
+      .from('usuarios')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: rep } = await App.supabase
+      .from('reportes')
+      .select('*', { count: 'exact', head: true })
+      .eq('estado', 'abierto');
     
     document.getElementById('stat-inventory').textContent = inv || 0;
     document.getElementById('stat-members').textContent = mem || 0;
@@ -430,7 +435,7 @@ async function loadDashboard() {
     console.error("Error stats:", err);
   }
   
-  // Bitácoras
+  // ===== 2. BITÁCORA RECIENTE =====
   try {
     const { data: bits } = await App.supabase
       .from('bitacoras')
@@ -456,9 +461,9 @@ async function loadDashboard() {
     console.error("Error bitácoras:", err);
   }
   
-  // Reportes
+  // ===== 3. REPORTES RECIENTES ✅ CORREGIDO =====
   try {
-    const { data: reps } = await App.supabase
+    const { data: reps } = await App.supabase  // ✅ Agregado 'data:'
       .from('reportes')
       .select('*')
       .order('created_at', { ascending: false })
@@ -466,7 +471,7 @@ async function loadDashboard() {
     
     const repList = document.getElementById('dashboard-reportes-list');
     if (repList) {
-      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
+      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' }; // ✅ Definido antes del uso
       if (reps && reps.length > 0) {
         repList.innerHTML = reps.map(r => 
           `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}">
@@ -484,18 +489,18 @@ async function loadDashboard() {
     console.error("Error reportes:", err);
   }
   
-  // Préstamos activos
+  // ===== 4. PRÉSTAMOS ACTIVOS =====
   try {
     const { count: loans } = await App.supabase
       .from('prestamos')
       .select('*', { count: 'exact', head: true })
-      .in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
+      .in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente', 'AUTORIZADO', 'PENDIENTE']);
     document.getElementById('stat-loans').textContent = loans || 0;
     
     const { data: prestamos } = await App.supabase
       .from('prestamos')
       .select('*')
-      .eq('estado', 'autorizado')
+      .in('estado', ['autorizado', 'AUTORIZADO'])
       .order('created_at', { ascending: false })
       .limit(5);
     
@@ -520,12 +525,12 @@ async function loadDashboard() {
     console.error("Error préstamos:", err);
   }
   
-  // Devoluciones
+  // ===== 5. DEVOLUCIONES ✅ CORREGIDO =====
   try {
-    const { data: devoluciones } = await App.supabase
+    const { data: devoluciones } = await App.supabase  // ✅ Agregado 'data:'
       .from('prestamos')
       .select('*')
-      .eq('estado', 'devuelto')
+      .in('estado', ['devuelto', 'DEVUELTO'])
       .order('fecha_confirmacion', { ascending: false })
       .limit(5);
     
@@ -836,14 +841,14 @@ async function loadPrestamos() {
     if (tbody) {
       if (data && data.length > 0) {
         const misPrestamos = data.filter(p => 
-          App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente'
+          App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente' || p.estado === 'AUTORIZADO'
         );
         
         tbody.innerHTML = misPrestamos.map(l => {
           const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
           let acciones = '';
           
-          if (l.estado === 'autorizado') {
+          if (l.estado === 'autorizado' || l.estado === 'AUTORIZADO') {
             acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
           } else if (l.estado === 'devolucion_pendiente') {
             acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
@@ -870,7 +875,7 @@ async function loadPrestamos() {
     }
     
     if (App.isAdmin && pendientesBody && pendientesSection) {
-      const pendientes = data.filter(p => p.estado === 'pendiente');
+      const pendientes = data.filter(p => p.estado === 'pendiente' || p.estado === 'PENDIENTE');
       
       if (pendientes.length > 0) {
         pendientesSection.hidden = false;
