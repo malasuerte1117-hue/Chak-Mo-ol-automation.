@@ -120,11 +120,10 @@
     .data-table code { background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; color: var(--cyan-neon); font-size: 0.75rem; }
     .data-table a { color: var(--cyan-neon); text-decoration: none; }
     .status { padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
-    .status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
+    .status-si, .status-disponible, .status-devuelto { background: rgba(0,255,136,0.15); color: var(--success); }
     .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
     .status-desconocido, .status-prestado { background: rgba(255,170,0,0.15); color: var(--warning); }
     .status-autorizado { background: rgba(0,212,255,0.15); color: var(--cyan-neon); }
-    .status-devuelto { background: rgba(0,255,136,0.15); color: var(--success); }
 
     .reportes-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
     @media (min-width: 600px) { .reportes-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -162,6 +161,9 @@
     .toast.error { border-left-color: var(--red-alert); }
     .hidden { display: none !important; }
     .no-results { text-align: center; padding: 20px; color: var(--text-muted); display: none; }
+
+    .prestamo-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+    .prestamo-item-row select, .prestamo-item-row input { flex: 1; }
   </style>
 </head>
 <body>
@@ -297,6 +299,7 @@
       <div id="view-miembros" class="view admin-only" hidden>
         <h2 class="view-title">👥 Miembros</h2>
         <form id="miembro-form" class="dashboard-section">
+          <h3 style="margin-bottom:16px;color:var(--cyan-neon);">Nuevo Miembro</h3>
           <div class="form-row">
             <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required></div>
             <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required></div>
@@ -517,7 +520,6 @@
         });
       });
 
-      // BÚSQUEDA
       const searchInput = document.getElementById('inventory-search');
       if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -526,7 +528,6 @@
         });
       }
 
-      // EXPORTAR
       document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
         try {
           const { data, error } = await App.supabase.from('inventario').select('*');
@@ -569,7 +570,6 @@
         }
       });
 
-      // BITÁCORA FORM
       document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -587,7 +587,6 @@
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
       });
 
-      // MIEMBROS FORM - RESTAURADO
       document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -608,7 +607,6 @@
         }
       });
 
-      // PRÉSTAMOS FORM - RESTAURADO
       document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         document.getElementById('prestamo-error').textContent = '';
@@ -664,7 +662,6 @@
           showToast('✅ Préstamo registrado', 'success');
           e.target.reset();
           
-          // Reset item rows
           document.getElementById('prestamo-items-container').innerHTML = `
             <div class="prestamo-item-row">
               <select class="prestamo-item-select" required>
@@ -684,7 +681,6 @@
         }
       });
 
-      // REPORTES FORM
       document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -704,7 +700,6 @@
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
       });
 
-      // MODAL INVENTARIO
       const modal = document.getElementById('item-modal');
       document.querySelector('.modal-close')?.addEventListener('click', () => modal.classList.remove('active'));
       modal?.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
@@ -773,53 +768,65 @@
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
 
-        // BITÁCORAS
-        const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+        const {  bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
         const bitList = document.getElementById('dashboard-bitacora-list');
         if (bitList) {
-          bitList.innerHTML = bits && bits.length > 0 ? bits.map(b => `
-            <li class="activity-item">
-              <span class="time">${new Date(b.fecha).toLocaleString()}</span>
-              <strong>${b.titulo || 'Sin título'}</strong>
-              <div style="font-size:0.8rem;color:#888;margin-top:4px">${(b.actividad||'').substring(0,50)}${(b.actividad||'').length > 50 ? '...' : ''}</div>
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin registros</li>';
+          if (bits && bits.length > 0) {
+            bitList.innerHTML = bits.map(b => `
+              <li class="activity-item">
+                <span class="time">${new Date(b.fecha).toLocaleString()}</span>
+                <strong>${b.titulo || 'Sin título'}</strong>
+                <div style="font-size:0.8rem;color:#888;margin-top:4px">${(b.actividad||'').substring(0,50)}${(b.actividad||'').length > 50 ? '...' : ''}</div>
+              </li>`).join('');
+          } else {
+            bitList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin registros</li>';
+          }
         }
 
-        // REPORTES
-        const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
+        const {  reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
         if (repList) {
-          repList.innerHTML = reps && reps.length > 0 ? reps.map(r => `
-            <li class="activity-item" style="border-left-color:${colors[r.urgencia]||'#00d4ff'}">
-              <span class="time">${new Date(r.created_at).toLocaleString()}</span>
-              <strong style="color:${colors[r.urgencia]||'#00d4ff'}">[${(r.urgencia||'N/A').toUpperCase()}]</strong>
-              <span>${r.titulo || 'Sin título'}</span>
-              ${r.estado==='cerrado'?'<span style="color:#28a745;float:right;font-size:0.75rem">✓</span>':''}
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin reportes</li>';
+          if (reps && reps.length > 0) {
+            repList.innerHTML = reps.map(r => `
+              <li class="activity-item" style="border-left-color:${colors[r.urgencia]||'#00d4ff'}">
+                <span class="time">${new Date(r.created_at).toLocaleString()}</span>
+                <strong style="color:${colors[r.urgencia]||'#00d4ff'}">[${(r.urgencia||'N/A').toUpperCase()}]</strong>
+                <span>${r.titulo || 'Sin título'}</span>
+                ${r.estado==='cerrado'?'<span style="color:#28a745;float:right;font-size:0.75rem">✓</span>':''}
+              </li>`).join('');
+          } else {
+            repList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin reportes</li>';
+          }
         }
 
-        // PRÉSTAMOS
-        const { data: pres } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
+        const {  pres } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
         const presList = document.getElementById('dashboard-prestamos-list');
         if (presList) {
-          presList.innerHTML = pres && pres.length > 0 ? pres.map(p => `
-            <li class="activity-item">
-              <span class="time">📤 ${p.nombre_solicitante || 'Desconocido'}</span>
-              <div style="font-size:0.8rem">${p.items ? p.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin préstamos</li>';
+          if (pres && pres.length > 0) {
+            presList.innerHTML = pres.map(p => `
+              <li class="activity-item">
+                <span class="time">📤 ${p.nombre_solicitante || 'Desconocido'}</span>
+                <div style="font-size:0.8rem">${p.items ? p.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
+              </li>`).join('');
+          } else {
+            presList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin préstamos</li>';
+          }
         }
 
-        // DEVOLUCIONES
-        const { data: devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
+        const {  devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
         const devList = document.getElementById('dashboard-devoluciones-list');
         if (devList) {
-          devList.innerHTML = devs && devs.length > 0 ? devs.map(d => `
-            <li class="activity-item">
-              <span class="time">📥 ${d.nombre_solicitante || 'Desconocido'}</span>
-              <div style="font-size:0.8rem">${d.items ? d.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
-              <small style="color:#28a745">✓ Devuelto</small>
-            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones</li>';
+          if (devs && devs.length > 0) {
+            devList.innerHTML = devs.map(d => `
+              <li class="activity-item">
+                <span class="time">📥 ${d.nombre_solicitante || 'Desconocido'}</span>
+                <div style="font-size:0.8rem">${d.items ? d.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
+                <small style="color:#28a745">✓ Devuelto</small>
+              </li>`).join('');
+          } else {
+            devList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones</li>';
+          }
         }
       } catch (err) { console.error('Error dashboard:', err); }
     }
@@ -917,13 +924,17 @@
         const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
         const tbody = document.getElementById('bitacora-body');
         if (tbody) {
-          tbody.innerHTML = data && data.length > 0 ? data.map(b => `
-            <tr>
-              <td>${new Date(b.fecha).toLocaleString()}</td>
-              <td>${b.nombre_usuario || 'Desconocido'}</td>
-              <td>${b.titulo || 'Sin título'}</td>
-              <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
-            </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+          if (data && data.length > 0) {
+            tbody.innerHTML = data.map(b => `
+              <tr>
+                <td>${new Date(b.fecha).toLocaleString()}</td>
+                <td>${b.nombre_usuario || 'Desconocido'}</td>
+                <td>${b.titulo || 'Sin título'}</td>
+                <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+              </tr>`).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+          }
         }
       } catch (err) { console.error('Error loadBitacora:', err); }
     }
@@ -972,7 +983,6 @@
         const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById('prestamos-body');
         
-        // Cargar items para el formulario
         await loadPrestamoItems();
         
         if (tbody) {
@@ -982,13 +992,13 @@
               let acciones = '';
               
               if (l.estado === 'autorizado') {
-                acciones = `<button class="btn-sm btn-primary" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
+                acciones = `<button class="btn-sm btn-primary" onclick="requestReturn('${l.id}')">🔄 Devolver</button>`;
               } else if (l.estado === 'devolucion_pendiente') {
-                acciones = '<span class="status status-prestado">⏳ Esperando</span>';
+                acciones = '<span class="status status-prestado">⏳ Pendiente</span>';
               }
               
               return `<tr>
-                <td><code>${l.id || 'N/A'}</code></td>
+                <td><code>${(l.id || '').substring(0,8)}...</code></td>
                 <td>${l.nombre_solicitante || 'Desconocido'}</td>
                 <td>${items}</td>
                 <td><span class="status status-${l.estado || 'pendiente'}">${(l.estado || 'pendiente').toUpperCase()}</span></td>
@@ -1036,10 +1046,10 @@
     };
 
     window.requestReturn = async function(id) {
-      if (!confirm('¿Solicitar devolución?')) return;
+      if (!confirm('¿Confirmar devolución?')) return;
       try {
-        await App.supabase.from('prestamos').update({ estado: 'devolucion_pendiente' }).eq('id', id);
-        showToast('📋 Devolución solicitada', 'success');
+        await App.supabase.from('prestamos').update({ estado: 'devuelto' }).eq('id', id);
+        showToast('✅ Devolución confirmada', 'success');
         loadPrestamos(); loadDashboard();
       } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
