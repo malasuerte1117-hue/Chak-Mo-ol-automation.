@@ -107,28 +107,9 @@
     .activity-item { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; border-left: 3px solid var(--cyan-neon); font-size: 0.85rem; }
     .activity-item .time { color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 4px; }
 
-    /* BÚSQUEDA INVENTARIO - CORREGIDO */
-    .search-container { 
-      margin-bottom: 16px; 
-      display: block !important;
-      visibility: visible !important;
-    }
-    .search-input {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 12px 16px;
-      color: var(--text-primary);
-      width: 100%;
-      font-size: 0.95rem;
-      transition: var(--transition);
-      display: block !important;
-    }
-    .search-input:focus {
-      outline: none;
-      border-color: var(--cyan-neon);
-      box-shadow: 0 0 0 3px var(--cyan-glow);
-    }
+    .search-container { margin-bottom: 16px; }
+    .search-input { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 16px; color: var(--text-primary); width: 100%; font-size: 0.95rem; transition: var(--transition); }
+    .search-input:focus { outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 0 3px var(--cyan-glow); }
     .search-input::placeholder { color: var(--text-muted); }
 
     .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
@@ -142,6 +123,8 @@
     .status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
     .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
     .status-desconocido, .status-prestado { background: rgba(255,170,0,0.15); color: var(--warning); }
+    .status-autorizado { background: rgba(0,212,255,0.15); color: var(--cyan-neon); }
+    .status-devuelto { background: rgba(0,255,136,0.15); color: var(--success); }
 
     .reportes-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
     @media (min-width: 600px) { .reportes-grid { grid-template-columns: repeat(2, 1fr); } }
@@ -274,12 +257,9 @@
 
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Inventario</h2>
-        
-        <!-- CAMPO DE BÚSQUEDA - CORREGIDO -->
         <div class="search-container">
           <input type="text" id="inventory-search" class="search-input" placeholder="🔍 Buscar por nombre, ID, serie o categoría...">
         </div>
-        
         <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
           <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
           <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
@@ -316,15 +296,66 @@
 
       <div id="view-miembros" class="view admin-only" hidden>
         <h2 class="view-title">👥 Miembros</h2>
-        <div class="table-container">
-          <table class="data-table"><thead><tr><th>User</th><th>Nombre</th><th>Rol</th><th>Acc.</th></tr></thead><tbody id="miembros-body"></tbody></table>
+        <form id="miembro-form" class="dashboard-section">
+          <div class="form-row">
+            <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required></div>
+            <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Nombre *</label><input type="text" id="miembro-nombre" required></div>
+            <div class="form-group"><label>Rol *</label>
+              <select id="miembro-rol" required>
+                <option value="miembro">Miembro</option>
+                <option value="administrador">Administrador</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group"><label>Área</label><input type="text" id="miembro-area"></div>
+          <button type="submit" class="btn-primary btn-full">💾 Guardar Miembro</button>
+        </form>
+        <div class="table-container mt-2">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>User</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Acc.</th></tr></thead>
+            <tbody id="miembros-body"></tbody>
+          </table>
         </div>
       </div>
 
       <div id="view-prestamos" class="view admin-only" hidden>
         <h2 class="view-title">🔄 Préstamos</h2>
-        <div class="table-container">
-          <table class="data-table"><thead><tr><th>ID</th><th>Solicitante</th><th>Items</th><th>Estado</th></tr></thead><tbody id="prestamos-body"></tbody></table>
+        
+        <form id="prestamo-form" class="dashboard-section">
+          <h3 style="margin-bottom:16px;color:var(--cyan-neon);">📋 Nueva Solicitud de Préstamo</h3>
+          
+          <div class="form-group">
+            <label>Items a Prestar *</label>
+            <div id="prestamo-items-container">
+              <div class="prestamo-item-row">
+                <select class="prestamo-item-select" required>
+                  <option value="">Seleccionar item...</option>
+                </select>
+                <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+                <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
+              </div>
+            </div>
+            <button type="button" class="btn-secondary btn-sm" onclick="addPrestamoItem()" style="margin-top:10px;">+ Agregar otro item</button>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group"><label>Fecha de Préstamo *</label><input type="date" id="prestamo-fecha-inicio" required></div>
+            <div class="form-group"><label>Fecha de Devolución *</label><input type="date" id="prestamo-fecha-devolucion" required></div>
+          </div>
+          
+          <div class="form-group"><label>Motivo del Préstamo</label><textarea id="prestamo-motivo" rows="2" placeholder="Describe el propósito..."></textarea></div>
+          <div id="prestamo-error" style="color:var(--red-alert);margin-bottom:12px;font-size:0.85rem;"></div>
+          <button type="submit" class="btn-primary btn-full">✅ Solicitar Préstamo</button>
+        </form>
+        
+        <div class="table-container mt-2">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Solicitante</th><th>Items</th><th>Estado</th><th>Acción</th></tr></thead>
+            <tbody id="prestamos-body"></tbody>
+          </table>
         </div>
       </div>
 
@@ -486,7 +517,7 @@
         });
       });
 
-      // BÚSQUEDA EN INVENTARIO
+      // BÚSQUEDA
       const searchInput = document.getElementById('inventory-search');
       if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -495,7 +526,7 @@
         });
       }
 
-      // EXPORTAR EXCEL - RESTAURADO
+      // EXPORTAR
       document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
         try {
           const { data, error } = await App.supabase.from('inventario').select('*');
@@ -538,6 +569,7 @@
         }
       });
 
+      // BITÁCORA FORM
       document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -555,6 +587,104 @@
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
       });
 
+      // MIEMBROS FORM - RESTAURADO
+      document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+          const { error } = await App.supabase.from('usuarios').insert([{
+            username: document.getElementById('miembro-username').value.trim(),
+            password: document.getElementById('miembro-password').value,
+            nombre_completo: document.getElementById('miembro-nombre').value.trim(),
+            rol: document.getElementById('miembro-rol').value,
+            area: document.getElementById('miembro-area').value.trim(),
+            created_at: new Date().toISOString()
+          }]);
+          if (error) throw error;
+          showToast('✅ Miembro creado', 'success');
+          e.target.reset();
+          loadMembers();
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        }
+      });
+
+      // PRÉSTAMOS FORM - RESTAURADO
+      document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        document.getElementById('prestamo-error').textContent = '';
+        
+        try {
+          const items = [];
+          const itemRows = document.querySelectorAll('.prestamo-item-row');
+          
+          for (let row of itemRows) {
+            const itemId = row.querySelector('.prestamo-item-select').value;
+            const cantidad = parseInt(row.querySelector('.prestamo-cantidad').value);
+            
+            if (itemId && cantidad > 0) {
+              const { data: itemData } = await App.supabase
+                .from('inventario')
+                .select('nombre, cantidad')
+                .eq('id', itemId)
+                .single();
+              
+              if (!itemData) throw new Error('Item no encontrado');
+              if (cantidad > itemData.cantidad) {
+                throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}`);
+              }
+              
+              items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
+            }
+          }
+          
+          if (items.length === 0) throw new Error('Debes seleccionar al menos un item');
+          
+          const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
+          const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
+          
+          if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
+            throw new Error('La fecha de devolución debe ser posterior');
+          }
+          
+          const prestamoData = {
+            usuario_id: App.user.id,
+            nombre_solicitante: App.user.nombre || App.user.username,
+            items: items,
+            fecha_prestamo: fechaInicio,
+            fecha_devolucion: fechaDevolucion,
+            motivo: document.getElementById('prestamo-motivo').value,
+            estado: 'autorizado',
+            autorizado_por: App.user.id,
+            created_at: new Date().toISOString()
+          };
+          
+          const { error } = await App.supabase.from('prestamos').insert([prestamoData]);
+          if (error) throw error;
+          
+          showToast('✅ Préstamo registrado', 'success');
+          e.target.reset();
+          
+          // Reset item rows
+          document.getElementById('prestamo-items-container').innerHTML = `
+            <div class="prestamo-item-row">
+              <select class="prestamo-item-select" required>
+                <option value="">Seleccionar item...</option>
+              </select>
+              <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+              <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
+            </div>`;
+          
+          await loadPrestamoItems();
+          loadPrestamos();
+          loadDashboard();
+          
+        } catch (err) {
+          document.getElementById('prestamo-error').textContent = err.message;
+          showToast('Error: ' + err.message, 'error');
+        }
+      });
+
+      // REPORTES FORM
       document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -574,6 +704,7 @@
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
       });
 
+      // MODAL INVENTARIO
       const modal = document.getElementById('item-modal');
       document.querySelector('.modal-close')?.addEventListener('click', () => modal.classList.remove('active'));
       modal?.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
@@ -642,80 +773,55 @@
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
 
-        // BITÁCORAS - CORREGIDO
-        const {  bits, error: bitError } = await App.supabase
-          .from('bitacoras')
-          .select('*')
-          .order('fecha', { ascending: false })
-          .limit(5);
-        
-        console.log('Bitácoras dashboard:', bits, 'Error:', bitError);
-        
+        // BITÁCORAS
+        const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
         const bitList = document.getElementById('dashboard-bitacora-list');
         if (bitList) {
-          if (bits && bits.length > 0) {
-            bitList.innerHTML = bits.map(b => `
-              <li class="activity-item">
-                <span class="time">${new Date(b.fecha).toLocaleString()}</span>
-                <strong>${b.titulo || 'Sin título'}</strong>
-                <div style="font-size:0.8rem;color:#888;margin-top:4px">${(b.actividad||'').substring(0,50)}${(b.actividad||'').length > 50 ? '...' : ''}</div>
-              </li>`).join('');
-          } else {
-            bitList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin registros</li>';
-          }
+          bitList.innerHTML = bits && bits.length > 0 ? bits.map(b => `
+            <li class="activity-item">
+              <span class="time">${new Date(b.fecha).toLocaleString()}</span>
+              <strong>${b.titulo || 'Sin título'}</strong>
+              <div style="font-size:0.8rem;color:#888;margin-top:4px">${(b.actividad||'').substring(0,50)}${(b.actividad||'').length > 50 ? '...' : ''}</div>
+            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin registros</li>';
         }
 
         // REPORTES
-        const {  reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
+        const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
         if (repList) {
-          if (reps && reps.length > 0) {
-            repList.innerHTML = reps.map(r => `
-              <li class="activity-item" style="border-left-color:${colors[r.urgencia]||'#00d4ff'}">
-                <span class="time">${new Date(r.created_at).toLocaleString()}</span>
-                <strong style="color:${colors[r.urgencia]||'#00d4ff'}">[${(r.urgencia||'N/A').toUpperCase()}]</strong>
-                <span>${r.titulo || 'Sin título'}</span>
-                ${r.estado==='cerrado'?'<span style="color:#28a745;float:right;font-size:0.75rem">✓</span>':''}
-              </li>`).join('');
-          } else {
-            repList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin reportes</li>';
-          }
+          repList.innerHTML = reps && reps.length > 0 ? reps.map(r => `
+            <li class="activity-item" style="border-left-color:${colors[r.urgencia]||'#00d4ff'}">
+              <span class="time">${new Date(r.created_at).toLocaleString()}</span>
+              <strong style="color:${colors[r.urgencia]||'#00d4ff'}">[${(r.urgencia||'N/A').toUpperCase()}]</strong>
+              <span>${r.titulo || 'Sin título'}</span>
+              ${r.estado==='cerrado'?'<span style="color:#28a745;float:right;font-size:0.75rem">✓</span>':''}
+            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin reportes</li>';
         }
 
         // PRÉSTAMOS
-        const {  pres } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
+        const { data: pres } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
         const presList = document.getElementById('dashboard-prestamos-list');
         if (presList) {
-          if (pres && pres.length > 0) {
-            presList.innerHTML = pres.map(p => `
-              <li class="activity-item">
-                <span class="time">📤 ${p.nombre_solicitante || 'Desconocido'}</span>
-                <div style="font-size:0.8rem">${p.items ? p.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
-              </li>`).join('');
-          } else {
-            presList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin préstamos</li>';
-          }
+          presList.innerHTML = pres && pres.length > 0 ? pres.map(p => `
+            <li class="activity-item">
+              <span class="time">📤 ${p.nombre_solicitante || 'Desconocido'}</span>
+              <div style="font-size:0.8rem">${p.items ? p.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
+            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin préstamos</li>';
         }
 
         // DEVOLUCIONES
-        const {  devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
+        const { data: devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
         const devList = document.getElementById('dashboard-devoluciones-list');
         if (devList) {
-          if (devs && devs.length > 0) {
-            devList.innerHTML = devs.map(d => `
-              <li class="activity-item">
-                <span class="time">📥 ${d.nombre_solicitante || 'Desconocido'}</span>
-                <div style="font-size:0.8rem">${d.items ? d.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
-                <small style="color:#28a745">✓ Devuelto</small>
-              </li>`).join('');
-          } else {
-            devList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones</li>';
-          }
+          devList.innerHTML = devs && devs.length > 0 ? devs.map(d => `
+            <li class="activity-item">
+              <span class="time">📥 ${d.nombre_solicitante || 'Desconocido'}</span>
+              <div style="font-size:0.8rem">${d.items ? d.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
+              <small style="color:#28a745">✓ Devuelto</small>
+            </li>`).join('') : '<li style="padding:10px;color:#666;text-align:center">Sin devoluciones</li>';
         }
-      } catch (err) { 
-        console.error('Error dashboard:', err); 
-      }
+      } catch (err) { console.error('Error dashboard:', err); }
     }
 
     function filterInventory(query) {
@@ -735,11 +841,7 @@
         const categoria = (item.categoria || '').toLowerCase();
         const comentarios = (item.comentarios || '').toLowerCase();
         
-        return nombre.includes(query) || 
-               id.includes(query) || 
-               serie.includes(query) || 
-               categoria.includes(query) ||
-               comentarios.includes(query);
+        return nombre.includes(query) || id.includes(query) || serie.includes(query) || categoria.includes(query) || comentarios.includes(query);
       });
 
       if (filtered.length > 0) {
@@ -806,9 +908,7 @@
             container.innerHTML = '<p style="text-align:center;color:#666;padding:40px;">Sin reportes</p>';
           }
         }
-      } catch (err) {
-        console.error('Error loadReportes:', err);
-      }
+      } catch (err) { console.error('Error loadReportes:', err); }
     }
 
     async function loadBitacora() {
@@ -817,29 +917,21 @@
         const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
         const tbody = document.getElementById('bitacora-body');
         if (tbody) {
-          if (data && data.length > 0) {
-            tbody.innerHTML = data.map(b => `
-              <tr>
-                <td>${new Date(b.fecha).toLocaleString()}</td>
-                <td>${b.nombre_usuario || 'Desconocido'}</td>
-                <td>${b.titulo || 'Sin título'}</td>
-                <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
-              </tr>`).join('');
-          } else {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
-          }
+          tbody.innerHTML = data && data.length > 0 ? data.map(b => `
+            <tr>
+              <td>${new Date(b.fecha).toLocaleString()}</td>
+              <td>${b.nombre_usuario || 'Desconocido'}</td>
+              <td>${b.titulo || 'Sin título'}</td>
+              <td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+            </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
         }
-      } catch (err) {
-        console.error('Error loadBitacora:', err);
-      }
+      } catch (err) { console.error('Error loadBitacora:', err); }
     }
 
     async function loadInventory() {
       if (!App.supabase) return;
       try {
         const { data, error } = await App.supabase.from('inventario').select('*');
-        console.log('Inventario cargado:', data, 'Error:', error);
-        
         inventoryCache = data || [];
         
         const searchInput = document.getElementById('inventory-search');
@@ -848,9 +940,7 @@
         renderInventoryTable(inventoryCache);
         const noResults = document.getElementById('search-no-results');
         if (noResults) noResults.style.display = 'none';
-      } catch (err) {
-        console.error('Error loadInventory:', err);
-      }
+      } catch (err) { console.error('Error loadInventory:', err); }
     }
 
     async function loadMembers() {
@@ -862,18 +952,18 @@
           if (data && data.length > 0) {
             tbody.innerHTML = data.map(m => `
               <tr>
+                <td>${m.id || 'N/A'}</td>
                 <td>@${m.username || 'N/A'}</td>
                 <td>${m.nombre_completo || m.nombre || '-'}</td>
                 <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${m.rol || 'miembro'}</span></td>
+                <td>${m.area || '-'}</td>
                 <td>${m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>` : '🔒'}</td>
               </tr>`).join('');
           } else {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
           }
         }
-      } catch (err) {
-        console.error('Error loadMembers:', err);
-      }
+      } catch (err) { console.error('Error loadMembers:', err); }
     }
 
     async function loadPrestamos() {
@@ -881,59 +971,105 @@
       try {
         const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById('prestamos-body');
+        
+        // Cargar items para el formulario
+        await loadPrestamoItems();
+        
         if (tbody) {
           if (data && data.length > 0) {
-            tbody.innerHTML = data.map(l => `
-              <tr>
+            tbody.innerHTML = data.map(l => {
+              const items = l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items';
+              let acciones = '';
+              
+              if (l.estado === 'autorizado') {
+                acciones = `<button class="btn-sm btn-primary" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
+              } else if (l.estado === 'devolucion_pendiente') {
+                acciones = '<span class="status status-prestado">⏳ Esperando</span>';
+              }
+              
+              return `<tr>
                 <td><code>${l.id || 'N/A'}</code></td>
                 <td>${l.nombre_solicitante || 'Desconocido'}</td>
-                <td>${l.items ? l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') : 'Sin items'}</td>
-                <td><span class="status status-${l.estado || 'pendiente'}">${l.estado || 'pendiente'}</span></td>
-              </tr>`).join('');
+                <td>${items}</td>
+                <td><span class="status status-${l.estado || 'pendiente'}">${(l.estado || 'pendiente').toUpperCase()}</span></td>
+                <td>${acciones}</td>
+              </tr>`;
+            }).join('');
           } else {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
           }
         }
-      } catch (err) {
-        console.error('Error loadPrestamos:', err);
-      }
+      } catch (err) { console.error('Error loadPrestamos:', err); }
     }
+
+    async function loadPrestamoItems() {
+      if (!App.supabase) return;
+      try {
+        const { data } = await App.supabase.from('inventario').select('id, nombre, cantidad').gt('cantidad', 0);
+        const selects = document.querySelectorAll('.prestamo-item-select');
+        
+        selects.forEach(select => {
+          select.innerHTML = '<option value="">Seleccionar item...</option>' + 
+            (data ? data.map(item => `<option value="${item.id}" data-stock="${item.cantidad}">${item.nombre} (Disp: ${item.cantidad})</option>`).join('') : '');
+        });
+      } catch (err) { console.error('Error loading items:', err); }
+    }
+
+    window.addPrestamoItem = function() {
+      const container = document.getElementById('prestamo-items-container');
+      const newRow = document.createElement('div');
+      newRow.className = 'prestamo-item-row';
+      newRow.innerHTML = `
+        <select class="prestamo-item-select" required>
+          <option value="">Cargando...</option>
+        </select>
+        <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+        <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>`;
+      container.appendChild(newRow);
+      loadPrestamoItems();
+    };
+
+    window.removePrestamoItem = function(btn) {
+      const rows = document.querySelectorAll('.prestamo-item-row');
+      if (rows.length > 1) btn.parentElement.remove();
+      else showToast('Debe haber al menos un item', 'warning');
+    };
+
+    window.requestReturn = async function(id) {
+      if (!confirm('¿Solicitar devolución?')) return;
+      try {
+        await App.supabase.from('prestamos').update({ estado: 'devolucion_pendiente' }).eq('id', id);
+        showToast('📋 Devolución solicitada', 'success');
+        loadPrestamos(); loadDashboard();
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    };
 
     window.deleteReport = async (id) => {
       if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
-      if (!confirm('¿Eliminar este reporte permanentemente?')) return;
+      if (!confirm('¿Eliminar este reporte?')) return;
       try {
         await App.supabase.from('reportes').delete().eq('id', id);
-        showToast('🗑️ Reporte eliminado', 'success');
-        loadReportes();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
+        showToast('🗑️ Eliminado', 'success');
+        loadReportes(); loadDashboard();
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
 
     window.deleteBitacora = async (id) => {
       if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
-      if (!confirm('¿Eliminar esta bitácora?')) return;
+      if (!confirm('¿Eliminar?')) return;
       try {
         await App.supabase.from('bitacoras').delete().eq('id', id);
         showToast('🗑️ Eliminada', 'success');
-        loadBitacora();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
+        loadBitacora(); loadDashboard();
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
 
     window.closeReport = async (id) => {
       try {
         await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
-        showToast('✅ Reporte cerrado', 'success');
-        loadReportes();
-        loadDashboard();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
+        showToast('✅ Cerrado', 'success');
+        loadReportes(); loadDashboard();
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
 
     window.viewComments = function(txt) {
@@ -944,10 +1080,7 @@
     window.editItem = async (id) => {
       try {
         const { data, error } = await App.supabase.from('inventario').select('*').eq('id', id).single();
-        if (error || !data) {
-          showToast('Item no encontrado', 'error');
-          return;
-        }
+        if (error || !data) { showToast('Item no encontrado', 'error'); return; }
         
         const modal = document.getElementById('item-modal');
         document.getElementById('modal-title').textContent = '✏️ Editar: ' + data.nombre;
@@ -961,32 +1094,26 @@
         document.getElementById('item-comentarios').value = data.comentarios || '';
         
         if (modal) modal.classList.add('active');
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
 
     window.deleteItem = async (id) => {
-      if (!confirm('¿Eliminar este item?')) return;
+      if (!confirm('¿Eliminar?')) return;
       try {
         await App.supabase.from('inventario').delete().eq('id', id);
         showToast('🗑️ Eliminado', 'success');
         loadInventory();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
     
     window.deleteMember = async (username) => {
       if (!confirm(`¿Eliminar a ${username}?`)) return;
-      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins principales', 'error');
+      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
       try {
         await App.supabase.from('usuarios').delete().eq('username', username);
         showToast('🗑️ Eliminado', 'success');
         loadMembers();
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      }
+      } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
 
     function showToast(msg, type = 'info') {
