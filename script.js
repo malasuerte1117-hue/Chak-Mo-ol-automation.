@@ -27,7 +27,6 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEvents() {
-  // === MENÚ HAMBURGUESA PARA MÓVIL ===
   const menuToggle = document.getElementById('menu-toggle');
   const sidebar = document.getElementById('sidebar');
   const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -230,40 +229,66 @@ function setupEvents() {
   document.getElementById('item-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+    
     try {
       let id = document.getElementById('item-id').value;
       
+      const nombre = document.getElementById('item-nombre').value.trim();
+      const serie = document.getElementById('item-serie')?.value?.trim() || 'N/A';
+      const cantidad = parseInt(document.getElementById('item-cantidad').value) || 1;
+      const funciona = document.getElementById('item-funciona')?.value || 'desconocido';
+      const estado = document.getElementById('item-estado')?.value || 'disponible';
+      const datasheet = document.getElementById('item-datasheet')?.value?.trim() || '';
+      const comentarios = document.getElementById('item-comentarios')?.value?.trim() || '';
+      
+      if (!nombre) {
+        showToast('❌ El nombre es obligatorio', 'error');
+        return;
+      }
+      
       const item = {
-        nombre: document.getElementById('item-nombre').value,
-        numero_serie: document.getElementById('item-serie').value || 'N/A',
-        cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
-        funciona: document.getElementById('item-funciona').value,
-        estado: document.getElementById('item-estado').value,
-        categoria: document.getElementById('item-categoria').value,
-        datasheet: document.getElementById('item-datasheet').value,
-        comentarios: document.getElementById('item-comentarios').value,
-        foto_url: document.getElementById('item-foto').value
+        nombre: nombre,
+        numero_serie: serie,
+        cantidad: cantidad,
+        funciona: funciona,
+        estado: estado,
+        categoria: inferCategory(nombre),
+        datasheet: datasheet,
+        comentarios: comentarios
       };
       
+      console.log('📦 Guardando item:', item);
+      
       if (id) {
-        await App.supabase.from('inventario').update(item).eq('id', id);
-        showToast('✅ Actualizado', 'success');
+        const { error } = await App.supabase.from('inventario').update(item).eq('id', id);
+        if (error) throw error;
+        showToast('✅ Actualizado correctamente', 'success');
       } else {
-        const cleanName = item.nombre.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
-        id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
+        const cleanName = nombre.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
+        const timestamp = Date.now().toString().slice(-6);
+        id = 'LAB-' + cleanName + '-' + timestamp;
+        
         item.id = id;
         item.created_at = new Date().toISOString();
         
-        const { error } = await App.supabase.from('inventario').insert([item]);
-        if (error) throw error;
-        showToast('✅ Creado', 'success');
+        const { data, error } = await App.supabase.from('inventario').insert([item]).select();
+        if (error) {
+          console.error('❌ Error al insertar:', error);
+          throw error;
+        }
+        
+        console.log('✅ Item creado:', data);
+        showToast('✅ Item creado: ' + id, 'success');
       }
       
       closeModal();
-      loadInventory();
+      document.getElementById('item-form').reset();
+      document.getElementById('item-id').value = '';
+      await loadInventory();
+      
     } catch (err) {
-      document.getElementById('item-error').textContent = 'Error: ' + err.message;
-      showToast('Error: ' + err.message, 'error');
+      console.error('💥 Error:', err);
+      showToast('❌ Error: ' + err.message, 'error');
     }
   });
   
@@ -286,28 +311,23 @@ function setupEvents() {
             .eq('id', itemId)
             .single();
           
-          if (!itemData) {
-            throw new Error(`Item no encontrado`);
-          }
-          
+          if (!itemData) throw new Error('Item no encontrado');
           if (cantidad > itemData.cantidad) {
-            throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}, Solicitado: ${cantidad}`);
+            throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}`);
           }
           
           items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
         }
       }
       
-      if (items.length === 0) {
-        throw new Error('Debes seleccionar al menos un item');
-      }
+      if (items.length === 0) throw new Error('Debes seleccionar al menos un item');
       
       const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
       const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
       const motivo = document.getElementById('prestamo-motivo').value;
       
       if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
-        throw new Error('La fecha de devolución debe ser posterior a la fecha de préstamo');
+        throw new Error('La fecha de devolución debe ser posterior');
       }
       
       const estado = App.isAdmin ? 'autorizado' : 'pendiente';
@@ -324,26 +344,10 @@ function setupEvents() {
         created_at: new Date().toISOString()
       };
       
-      const { data: prestamo, error } = await App.supabase
-        .from('prestamos')
-        .insert([prestamoData])
-        .select()
-        .single();
-      
+      const { error } = await App.supabase.from('prestamos').insert([prestamoData]);
       if (error) throw error;
       
-      if (App.isAdmin) {
-        for (let item of items) {
-          await App.supabase.rpc('descontar_stock', {
-            p_item_id: item.item_id,
-            p_cantidad: item.cantidad
-          });
-        }
-        showToast('✅ Préstamo autorizado y registrado', 'success');
-      } else {
-        showToast('📋 Solicitud enviada. Espera autorización del administrador', 'success');
-      }
-      
+      showToast(App.isAdmin ? '✅ Préstamo autorizado' : '📋 Solicitud enviada', 'success');
       e.target.reset();
       document.getElementById('prestamo-items-container').innerHTML = `
         <div class="prestamo-item-row">
@@ -351,7 +355,7 @@ function setupEvents() {
             <option value="">Seleccionar item...</option>
           </select>
           <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-          <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
+          <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
         </div>
       `;
       loadPrestamos();
@@ -380,7 +384,7 @@ function setupEvents() {
       e.target.reset();
       loadMembers();
     } catch (err) {
-      showToast('Error Miembros: ' + err.message, 'error');
+      showToast('Error: ' + err.message, 'error');
     }
   });
 }
@@ -409,40 +413,24 @@ function updateAdminUI() {
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
 }
 
-// === ✅ DASHBOARD CORREGIDO ===
+// === ✅ DASHBOARD COMPLETAMENTE CORREGIDO ===
 async function loadDashboard() {
   if (!App.supabase) return;
   
   try {
-    // ===== 1. ESTADÍSTICAS =====
-    const { count: inv } = await App.supabase
-      .from('inventario')
-      .select('*', { count: 'exact', head: true });
-    
-    const { count: mem } = await App.supabase
-      .from('usuarios')
-      .select('*', { count: 'exact', head: true });
-    
-    const { count: rep } = await App.supabase
-      .from('reportes')
-      .select('*', { count: 'exact', head: true })
-      .eq('estado', 'abierto');
+    // Estadísticas
+    const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
+    const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
+    const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+    const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente', 'AUTORIZADO', 'PENDIENTE']);
     
     document.getElementById('stat-inventory').textContent = inv || 0;
     document.getElementById('stat-members').textContent = mem || 0;
     document.getElementById('stat-reports').textContent = rep || 0;
-  } catch (err) {
-    console.error("Error stats:", err);
-  }
-  
-  // ===== 2. BITÁCORA RECIENTE =====
-  try {
-    const { data: bits } = await App.supabase
-      .from('bitacoras')
-      .select('*')
-      .order('fecha', { ascending: false })
-      .limit(5);
-    
+    document.getElementById('stat-loans').textContent = loans || 0;
+
+    // Bitácoras
+    const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
     const bitList = document.getElementById('dashboard-bitacora-list');
     if (bitList) {
       if (bits && bits.length > 0) {
@@ -457,21 +445,13 @@ async function loadDashboard() {
         bitList.innerHTML = '<li class="text-muted">Sin registros de bitácora</li>';
       }
     }
-  } catch (err) {
-    console.error("Error bitácoras:", err);
-  }
-  
-  // ===== 3. REPORTES RECIENTES ✅ CORREGIDO =====
-  try {
-    const { data: reps } = await App.supabase  // ✅ Agregado 'data:'
-      .from('reportes')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
-    
+
+    // Reportes ✅ CORREGIDO
+    const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
     const repList = document.getElementById('dashboard-reportes-list');
+    const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
+    
     if (repList) {
-      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' }; // ✅ Definido antes del uso
       if (reps && reps.length > 0) {
         repList.innerHTML = reps.map(r => 
           `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}">
@@ -485,26 +465,11 @@ async function loadDashboard() {
         repList.innerHTML = '<li class="text-muted">Sin reportes recientes</li>';
       }
     }
-  } catch (err) {
-    console.error("Error reportes:", err);
-  }
-  
-  // ===== 4. PRÉSTAMOS ACTIVOS =====
-  try {
-    const { count: loans } = await App.supabase
-      .from('prestamos')
-      .select('*', { count: 'exact', head: true })
-      .in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente', 'AUTORIZADO', 'PENDIENTE']);
-    document.getElementById('stat-loans').textContent = loans || 0;
-    
-    const { data: prestamos } = await App.supabase
-      .from('prestamos')
-      .select('*')
-      .in('estado', ['autorizado', 'AUTORIZADO'])
-      .order('created_at', { ascending: false })
-      .limit(5);
-    
+
+    // Préstamos activos
+    const { data: prestamos } = await App.supabase.from('prestamos').select('*').in('estado', ['autorizado', 'AUTORIZADO']).order('created_at', { ascending: false }).limit(5);
     const prestamosList = document.getElementById('dashboard-prestamos-list');
+    
     if (prestamosList) {
       if (prestamos && prestamos.length > 0) {
         prestamosList.innerHTML = prestamos.map(p => {
@@ -521,20 +486,11 @@ async function loadDashboard() {
         prestamosList.innerHTML = '<li class="text-muted">Sin préstamos activos</li>';
       }
     }
-  } catch (err) {
-    console.error("Error préstamos:", err);
-  }
-  
-  // ===== 5. DEVOLUCIONES ✅ CORREGIDO =====
-  try {
-    const { data: devoluciones } = await App.supabase  // ✅ Agregado 'data:'
-      .from('prestamos')
-      .select('*')
-      .in('estado', ['devuelto', 'DEVUELTO'])
-      .order('fecha_confirmacion', { ascending: false })
-      .limit(5);
-    
+
+    // Devoluciones ✅ CORREGIDO
+    const { data: devoluciones } = await App.supabase.from('prestamos').select('*').in('estado', ['devuelto', 'DEVUELTO']).order('fecha_confirmacion', { ascending: false }).limit(5);
     const devolucionesList = document.getElementById('dashboard-devoluciones-list');
+    
     if (devolucionesList) {
       if (devoluciones && devoluciones.length > 0) {
         devolucionesList.innerHTML = devoluciones.map(d => {
@@ -551,8 +507,9 @@ async function loadDashboard() {
         devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones recientes</li>';
       }
     }
+
   } catch (err) {
-    console.error("Error devoluciones:", err);
+    console.error("❌ Error en loadDashboard:", err);
   }
 }
 
@@ -675,7 +632,6 @@ async function loadMembers() {
   }
 }
 
-// === PRÉSTAMOS ===
 window.addPrestamoItem = async function() {
   const container = document.getElementById('prestamo-items-container');
   const newRow = document.createElement('div');
@@ -685,10 +641,9 @@ window.addPrestamoItem = async function() {
       <option value="">Cargando...</option>
     </select>
     <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-    <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
+    <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
   `;
   container.appendChild(newRow);
-  
   await loadPrestamoItems(newRow.querySelector('.prestamo-item-select'));
 };
 
@@ -704,10 +659,7 @@ window.removePrestamoItem = function(btn) {
 async function loadPrestamoItems(selectElement) {
   if (!App.supabase) return;
   try {
-    const { data } = await App.supabase
-      .from('inventario')
-      .select('id, nombre, cantidad')
-      .gt('cantidad', 0);
+    const { data } = await App.supabase.from('inventario').select('id, nombre, cantidad').gt('cantidad', 0);
     
     if (data && data.length > 0) {
       selectElement.innerHTML = '<option value="">Seleccionar item...</option>' + 
@@ -721,105 +673,9 @@ async function loadPrestamoItems(selectElement) {
   }
 }
 
-window.authorizeLoan = async function(loanId, authorize) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-  if (!confirm(`${authorize ? 'AUTORIZAR' : 'DENEGAR'} este préstamo?`)) return;
-  
-  try {
-    if (authorize) {
-      const { data: prestamo } = await App.supabase
-        .from('prestamos')
-        .select('items')
-        .eq('id', loanId)
-        .single();
-      
-      for (let item of prestamo.items) {
-        await App.supabase.rpc('descontar_stock', {
-          p_item_id: item.item_id,
-          p_cantidad: item.cantidad
-        });
-      }
-      
-      await App.supabase.from('prestamos').update({
-        estado: 'autorizado',
-        autorizado_por: App.user.id,
-        fecha_autorizacion: new Date().toISOString()
-      }).eq('id', loanId);
-      
-      showToast('✅ Préstamo autorizado', 'success');
-    } else {
-      await App.supabase.from('prestamos').update({
-        estado: 'denegado',
-        autorizado_por: App.user.id,
-        fecha_autorizacion: new Date().toISOString()
-      }).eq('id', loanId);
-      
-      showToast('❌ Préstamo denegado', 'success');
-    }
-    
-    loadPrestamos();
-    loadDashboard();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-};
-
-window.requestReturn = async function(loanId) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-  if (!confirm('¿Solicitar devolución de este préstamo?')) return;
-  
-  try {
-    await App.supabase.from('prestamos').update({
-      estado: 'devolucion_pendiente',
-      fecha_devolucion_real: new Date().toISOString()
-    }).eq('id', loanId);
-    
-    showToast('📋 Devolución solicitada. Espera confirmación del administrador', 'success');
-    loadPrestamos();
-    loadDashboard();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-};
-
-window.confirmReturn = async function(loanId) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-  if (!confirm('¿Confirmar que los items fueron devueltos en buen estado?')) return;
-  
-  try {
-    const { data: prestamo } = await App.supabase
-      .from('prestamos')
-      .select('items')
-      .eq('id', loanId)
-      .single();
-    
-    for (let item of prestamo.items) {
-      await App.supabase.rpc('regresar_stock', {
-        p_item_id: item.item_id,
-        p_cantidad: item.cantidad
-      });
-    }
-    
-    await App.supabase.from('prestamos').update({
-      estado: 'devuelto',
-      confirmado_por: App.user.id,
-      fecha_confirmacion: new Date().toISOString()
-    }).eq('id', loanId);
-    
-    showToast('✅ Devolución confirmada', 'success');
-    loadPrestamos();
-    loadInventory();
-    loadDashboard();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-};
-
 async function loadPrestamos() {
   if (!App.supabase) return;
   try {
-    console.log("🔄 Cargando préstamos...");
-    
     const itemSelects = document.querySelectorAll('.prestamo-item-select');
     for (let select of itemSelects) {
       await loadPrestamoItems(select);
@@ -835,109 +691,52 @@ async function loadPrestamos() {
     const { data } = await query.order('created_at', { ascending: false });
     
     const tbody = document.getElementById('prestamos-body');
-    const pendientesBody = document.getElementById('prestamos-pendientes-body');
-    const pendientesSection = document.getElementById('prestamos-pendientes-section');
+    if (!tbody) return;
     
-    if (tbody) {
-      if (data && data.length > 0) {
-        const misPrestamos = data.filter(p => 
-          App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente' || p.estado === 'AUTORIZADO'
-        );
-        
-        tbody.innerHTML = misPrestamos.map(l => {
-          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-          let acciones = '';
-          
-          if (l.estado === 'autorizado' || l.estado === 'AUTORIZADO') {
-            acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
-          } else if (l.estado === 'devolucion_pendiente') {
-            acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
-          }
-          
-          return `
-            <tr>
-              <td><code>${l.id}</code></td>
-              <td>${itemsList}</td>
-              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
-              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
-              <td><span class="status status-${l.estado}">${l.estado}</span></td>
-              <td>${acciones}</td>
-            </tr>
-          `;
-        }).join('');
-        
-        if (misPrestamos.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
-        }
-      } else {
-        tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
-      }
-    }
-    
-    if (App.isAdmin && pendientesBody && pendientesSection) {
-      const pendientes = data.filter(p => p.estado === 'pendiente' || p.estado === 'PENDIENTE');
+    if (data && data.length > 0) {
+      const misPrestamos = data.filter(p => 
+        App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente' || p.estado === 'AUTORIZADO'
+      );
       
-      if (pendientes.length > 0) {
-        pendientesSection.hidden = false;
-        pendientesBody.innerHTML = pendientes.map(l => {
-          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-          return `
-            <tr>
-              <td><code>${l.id}</code></td>
-              <td>${l.nombre_solicitante}</td>
-              <td>${itemsList}</td>
-              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
-              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
-              <td>
-                <button class="btn-sm btn-success" onclick="authorizeLoan('${l.id}', true)">✅ Autorizar</button>
-                <button class="btn-sm btn-danger" onclick="authorizeLoan('${l.id}', false)">❌ Denegar</button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      } else {
-        pendientesSection.hidden = true;
-      }
-    }
-    
-    if (App.isAdmin && tbody) {
-      const devolucionesPendientes = data.filter(p => p.estado === 'devolucion_pendiente');
-      
-      devolucionesPendientes.forEach(l => {
-        const row = document.createElement('tr');
+      tbody.innerHTML = misPrestamos.map(l => {
         const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-        row.innerHTML = `
-          <td><code>${l.id}</code></td>
-          <td>${itemsList}</td>
-          <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
-          <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
-          <td><span class="status status-devolucion_pendiente">⏳ Devolución Pendiente</span></td>
-          <td><button class="btn-sm btn-success" onclick="confirmReturn('${l.id}')">✅ Confirmar Devolución</button></td>
+        let acciones = '';
+        
+        if (l.estado === 'autorizado' || l.estado === 'AUTORIZADO') {
+          acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
+        } else if (l.estado === 'devolucion_pendiente') {
+          acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
+        }
+        
+        return `
+          <tr>
+            <td><code>${l.id}</code></td>
+            <td>${itemsList}</td>
+            <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+            <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+            <td><span class="status status-${l.estado}">${l.estado}</span></td>
+            <td>${acciones}</td>
+          </tr>
         `;
-        tbody.appendChild(row);
-      });
+      }).join('');
+      
+      if (misPrestamos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
+      }
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
     }
-    
   } catch (err) {
     console.error("Error loadPrestamos:", err);
   }
 }
 
-// === FUNCIONES DE EDICIÓN Y ELIMINACIÓN ===
 window.editItem = async function(id) {
   if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-  console.log("✏️ Editando ID:", id);
-  
-  if (!id) {
-    return showToast('Error: ID no válido', 'error');
-  }
+  if (!id) return showToast('Error: ID no válido', 'error');
   
   try {
-    const { data: item, error } = await App.supabase
-      .from('inventario')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data: item, error } = await App.supabase.from('inventario').select('*').eq('id', id).single();
     
     if (error || !item) {
       console.error("❌ Error al buscar:", error);
@@ -954,15 +753,11 @@ window.editItem = async function(id) {
     document.getElementById('item-cantidad').value = item.cantidad || 1;
     document.getElementById('item-funciona').value = item.funciona || 'desconocido';
     document.getElementById('item-estado').value = item.estado || 'disponible';
-    document.getElementById('item-categoria').value = item.categoria || 'otros';
     document.getElementById('item-datasheet').value = item.datasheet || '';
     document.getElementById('item-comentarios').value = item.comentarios || '';
-    document.getElementById('item-foto').value = item.foto_url || '';
-    document.getElementById('item-error').textContent = '';
     
     modal.classList.remove('hidden');
     modal.classList.add('active');
-    console.log("✅ Modal abierto");
   } catch (err) {
     console.error("Error editItem:", err);
     showToast('Error: ' + err.message, 'error');
@@ -1023,11 +818,29 @@ window.closeReport = async function(id) {
   }
 };
 
+window.requestReturn = async function(loanId) {
+  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+  if (!confirm('¿Solicitar devolución?')) return;
+  
+  try {
+    await App.supabase.from('prestamos').update({
+      estado: 'devolucion_pendiente',
+      fecha_devolucion_real: new Date().toISOString()
+    }).eq('id', loanId);
+    
+    showToast('📋 Devolución solicitada', 'success');
+    loadPrestamos();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
 function inferCategory(n) {
   n = n.toLowerCase();
   if (n.includes('sensor')) return 'sensores';
-  if (n.includes('plc') || n.includes('variador') || n.includes('fuente') || n.includes('interruptor') || n.includes('switch')) return 'electronica';
-  if (n.includes('piston') || n.includes('cilindro') || n.includes('neumatico')) return 'mecanica';
+  if (n.includes('plc') || n.includes('variador') || n.includes('fuente')) return 'electronica';
+  if (n.includes('piston') || n.includes('cilindro')) return 'mecanica';
   if (n.includes('guante') || n.includes('cable') || n.includes('herramienta')) return 'herramientas';
   return 'otros';
 }
