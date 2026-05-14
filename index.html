@@ -32,7 +32,7 @@
     }
 
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
+    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
 
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -91,7 +91,6 @@
 
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
     @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
-    
     .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; display: flex; align-items: center; gap: 12px; }
     .stat-icon { font-size: 1.5rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(0,212,255,0.1); border-radius: var(--radius-sm); }
     .stat-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
@@ -99,25 +98,22 @@
 
     .dashboard-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; }
     .dashboard-section h3 { font-family: var(--font-display); margin-bottom: 16px; color: var(--text-secondary); font-size: 1rem; }
-    
     .activity-grid { display: grid; gap: 16px; }
     @media (min-width: 600px) { .activity-grid { grid-template-columns: 1fr 1fr; } }
-    
     .activity-column h4 { color: var(--cyan-neon); margin-bottom: 10px; font-size: 0.95rem; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
     .activity-list { list-style: none; max-height: 300px; overflow-y: auto; padding-right: 4px; }
     .activity-list::-webkit-scrollbar { width: 4px; }
     .activity-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
-
     .activity-item { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; border-left: 3px solid var(--cyan-neon); font-size: 0.85rem; }
     .activity-item .time { color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 4px; }
 
     .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; min-width: 700px; }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 1100px; }
     .data-table th { background: var(--bg-secondary); padding: 12px; text-align: left; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
-    .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+    .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
     .data-table tr:hover { background: var(--bg-hover); }
     .data-table code { background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; color: var(--cyan-neon); font-size: 0.75rem; }
-    
+    .data-table a { color: var(--cyan-neon); text-decoration: none; }
     .status { padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
     .status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
     .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
@@ -125,7 +121,6 @@
 
     .reportes-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
     @media (min-width: 600px) { .reportes-grid { grid-template-columns: repeat(2, 1fr); } }
-    
     .report-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; border-left: 4px solid var(--cyan-neon); }
     .report-card.closed { opacity: 0.5; border-left-color: var(--text-muted); }
     .report-urgencia { padding: 3px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; color: #000; display: inline-block; }
@@ -136,14 +131,12 @@
     .form-group { margin-bottom: 14px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
-    
     label { display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; }
     input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; color: var(--text-primary); width: 100%; font-size: 0.95rem; }
     input:focus, select:focus, textarea:focus { outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 0 2px var(--cyan-glow); }
     
     .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; min-height: 44px; }
     .btn-primary { background: linear-gradient(135deg, var(--cyan-neon), #00a3cc); color: #000; }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px var(--cyan-glow); }
     .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
     .btn-sm { padding: 6px 12px; font-size: 0.8rem; min-height: 36px; }
     .btn-danger { color: var(--red-alert); background: rgba(255,0,64,0.1); border: 1px solid rgba(255,0,64,0.3); }
@@ -153,14 +146,13 @@
 
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
     .modal.active { display: flex; }
-    .modal-content { background: var(--bg-card); padding: 24px 20px; border-radius: var(--radius-md); width: 100%; max-width: 500px; position: relative; max-height: 85vh; overflow-y: auto; animation: slide-up 0.3s ease; }
+    .modal-content { background: var(--bg-card); padding: 24px 20px; border-radius: var(--radius-md); width: 100%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; animation: slide-up 0.3s ease; }
     .modal-close { position: absolute; top: 12px; right: 16px; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); background: none; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
     .modal-close:hover { color: var(--red-alert); }
 
     .toast { position: fixed; bottom: 16px; left: 16px; right: 16px; background: var(--bg-card); border-left: 4px solid var(--cyan-neon); padding: 12px 16px; border-radius: var(--radius-sm); z-index: 2000; animation: slide-up 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.5); font-size: 0.9rem; }
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--red-alert); }
-
     .hidden { display: none !important; }
   </style>
 </head>
@@ -263,7 +255,7 @@
         </div>
         <div class="table-container">
           <table class="data-table">
-            <thead><tr><th>ID</th><th>Material</th><th>Serie</th><th>Cant.</th><th>Estado</th><th>Acc.</th></tr></thead>
+            <thead><tr><th>ID</th><th>Material</th><th>Serie</th><th>Cant.</th><th>Funciona</th><th>Estado</th><th>Datasheet</th><th>Comentarios</th><th>Acc.</th></tr></thead>
             <tbody id="inventory-body"></tbody>
           </table>
         </div>
@@ -357,9 +349,11 @@
             <select id="item-funciona">
               <option value="si">Sí</option>
               <option value="no">No</option>
+              <option value="desconocido">Desconocido</option>
             </select>
           </div>
         </div>
+        <div class="form-group"><label>URL Datasheet</label><input type="url" id="item-datasheet" placeholder="https://..."></div>
         <div class="form-group"><label>Comentarios</label><textarea id="item-comentarios" rows="2"></textarea></div>
         <button type="submit" class="btn-primary btn-full">💾 Guardar</button>
       </form>
@@ -516,6 +510,7 @@
             cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
             funciona: document.getElementById('item-funciona').value,
             estado: document.getElementById('item-estado').value,
+            datasheet: document.getElementById('item-datasheet').value,
             comentarios: document.getElementById('item-comentarios').value
           };
           
@@ -562,8 +557,7 @@
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
 
-        // Bitácoras recientes
-        const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+        const {  bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
         const bitList = document.getElementById('dashboard-bitacora-list');
         if (bitList) {
           if (bits && bits.length > 0) {
@@ -578,8 +572,7 @@
           }
         }
 
-        // Reportes recientes
-        const {  reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
+        const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
         if (repList) {
@@ -596,30 +589,28 @@
           }
         }
 
-        // Préstamos recientes
-        const { data: prestamos } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
+        const { data: pres } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
         const presList = document.getElementById('dashboard-prestamos-list');
         if (presList) {
-          if (prestamos && prestamos.length > 0) {
-            presList.innerHTML = prestamos.map(p => `
+          if (pres && pres.length > 0) {
+            presList.innerHTML = pres.map(p => `
               <li class="activity-item">
                 <span class="time">📤 ${p.nombre_solicitante || 'Desconocido'}</span>
-                <div style="font-size:0.8rem">${p.items?.map(i=>i.nombre).join(', ')||'Sin items'}</div>
+                <div style="font-size:0.8rem">${p.items ? p.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
               </li>`).join('');
           } else {
             presList.innerHTML = '<li style="padding:10px;color:#666;text-align:center">Sin préstamos</li>';
           }
         }
 
-        // Devoluciones recientes
-        const {  devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
+        const { data: devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
         const devList = document.getElementById('dashboard-devoluciones-list');
         if (devList) {
           if (devs && devs.length > 0) {
             devList.innerHTML = devs.map(d => `
               <li class="activity-item">
                 <span class="time">📥 ${d.nombre_solicitante || 'Desconocido'}</span>
-                <div style="font-size:0.8rem">${d.items?.map(i=>i.nombre).join(', ')||'Sin items'}</div>
+                <div style="font-size:0.8rem">${d.items ? d.items.map(i => i.nombre).join(', ') : 'Sin items'}</div>
                 <small style="color:#28a745">✓ Devuelto</small>
               </li>`).join('');
           } else {
@@ -702,14 +693,17 @@
                 <td>${i.nombre || 'Sin nombre'}</td>
                 <td>${i.numero_serie || 'N/A'}</td>
                 <td>${i.cantidad || 0}</td>
+                <td><span class="status status-${i.funciona || 'desconocido'}">${i.funciona || 'desconocido'}</span></td>
                 <td><span class="status status-${i.estado || 'disponible'}">${i.estado || 'disponible'}</span></td>
+                <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄 Ver</a>` : '-'}</td>
+                <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬 Ver</button>` : '-'}</td>
                 <td>
                   <button class="btn-sm btn-primary" onclick="editItem('${i.id}')">✏️</button>
                   ${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteItem('${i.id}')" style="margin-left:4px;">🗑️</button>` : ''}
                 </td>
               </tr>`).join('');
           } else {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
           }
         }
       } catch (err) {
@@ -763,7 +757,6 @@
       }
     }
 
-    // Funciones globales
     window.deleteReport = async (id) => {
       if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
       if (!confirm('¿Eliminar este reporte permanentemente?')) return;
@@ -801,6 +794,11 @@
       }
     };
 
+    window.viewComments = function(txt) {
+      if (txt && txt.trim()) alert('📝 COMENTARIOS:\n\n' + txt);
+      else showToast('Sin comentarios', 'info');
+    };
+
     window.editItem = async (id) => {
       try {
         const { data, error } = await App.supabase.from('inventario').select('*').eq('id', id).single();
@@ -817,6 +815,7 @@
         document.getElementById('item-cantidad').value = data.cantidad || 1;
         document.getElementById('item-funciona').value = data.funciona || 'desconocido';
         document.getElementById('item-estado').value = data.estado || 'disponible';
+        document.getElementById('item-datasheet').value = data.datasheet || '';
         document.getElementById('item-comentarios').value = data.comentarios || '';
         
         if (modal) modal.classList.add('active');
