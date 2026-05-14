@@ -2,9 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CHAK' MO'OL | Club de Robótica</title>
-  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
@@ -16,160 +15,99 @@
       --cyan-neon: #00d4ff;
       --cyan-glow: rgba(0, 212, 255, 0.4);
       --red-alert: #ff0040;
-      --red-glow: rgba(255, 0, 64, 0.4);
       --gold-accent: #D4AF37;
       --text-primary: #ffffff;
       --text-secondary: #b0b0c0;
       --text-muted: #6b6b80;
       --border-color: #2a2a40;
       --success: #00ff88;
-      --warning: #ffaa00;
       --font-display: 'Orbitron', sans-serif;
       --font-body: 'Roboto', sans-serif;
-      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      --radius-sm: 8px;
-      --radius-md: 12px;
     }
-
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; overflow-x: hidden; }
-
+    body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; }
     @keyframes spin { to { transform: rotate(360deg); } }
     @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
     .loading-overlay { position: fixed; inset: 0; background: var(--bg-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
     .loader { width: 60px; height: 60px; border: 3px solid var(--border-color); border-top-color: var(--cyan-neon); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
-    .loading-overlay p { color: var(--text-secondary); font-family: var(--font-display); }
     .hidden { display: none !important; }
-
     .auth-section { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .auth-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 32px 24px; width: 100%; max-width: 420px; }
+    .auth-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 32px 24px; width: 100%; max-width: 420px; }
     .logo-title { font-family: var(--font-display); font-size: 1.8rem; color: var(--cyan-neon); text-align: center; margin-bottom: 16px; }
-
     .main-header { position: fixed; top: 0; left: 0; right: 0; height: 64px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 100; }
     .header-left { display: flex; align-items: center; gap: 12px; }
-    .menu-btn { background: none; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 1.4rem; cursor: pointer; padding: 8px 12px; border-radius: var(--radius-sm); display: none; }
+    .menu-btn { background: none; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 1.4rem; cursor: pointer; padding: 8px 12px; border-radius: 8px; display: none; }
     .brand h2 { font-family: var(--font-display); color: var(--cyan-neon); font-size: 1.1rem; }
     .badge { background: linear-gradient(135deg, var(--gold-accent), #b8962e); color: #000; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; margin-left: 6px; font-weight: 700; }
     .header-right { display: flex; align-items: center; gap: 10px; }
     #user-display { font-size: 0.85rem; font-weight: 500; }
     .role-badge { padding: 4px 10px; border-radius: 15px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
     .role-badge.admin { background: var(--red-alert); color: #fff; }
-    #logout-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.85rem; }
-    #logout-btn:hover { border-color: var(--red-alert); color: var(--red-alert); }
-
-    .sidebar { position: fixed; top: 64px; left: -260px; width: 240px; height: calc(100vh - 64px); background: var(--bg-secondary); border-right: 1px solid var(--border-color); z-index: 99; transition: left 0.3s ease; display: flex; flex-direction: column; overflow-y: auto; }
+    #logout-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
+    .sidebar { position: fixed; top: 64px; left: -260px; width: 240px; height: calc(100vh - 64px); background: var(--bg-secondary); border-right: 1px solid var(--border-color); z-index: 99; transition: left 0.3s ease; display: flex; flex-direction: column; }
     .sidebar.open { left: 0; }
     .nav-menu { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
-    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: none; border: none; border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; text-align: left; min-height: 48px; font-size: 0.9rem; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: none; border: none; border-radius: 8px; color: var(--text-secondary); cursor: pointer; text-align: left; min-height: 48px; font-size: 0.9rem; }
     .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
     .nav-item.active { background: rgba(0, 212, 255, 0.1); color: var(--cyan-neon); border-left: 3px solid var(--cyan-neon); font-weight: 600; }
     .sidebar-footer { padding: 20px; border-top: 1px solid var(--border-color); text-align: center; }
     .eslogan-small { color: var(--gold-accent); font-size: 0.7rem; font-style: italic; }
-
     .sidebar-overlay { position: fixed; inset: 0; top: 64px; background: rgba(0,0,0,0.6); z-index: 98; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
     .sidebar-overlay.active { opacity: 1; visibility: visible; }
-
     .main-content { padding: 80px 16px 20px; }
-
-    @media (min-width: 768px) {
-      .menu-btn { display: none; }
-      .sidebar { left: 0; }
-      .sidebar-overlay { display: none !important; }
-      .main-content { padding-left: 256px; }
-    }
-
-    @media (max-width: 767px) {
-      .menu-btn { display: flex !important; }
-      .sidebar { left: -260px; }
-      .sidebar.open { left: 0; }
-      #user-display { display: none; }
-    }
-
+    @media (min-width: 768px) { .menu-btn { display: none; } .sidebar { left: 0; } .sidebar-overlay { display: none !important; } .main-content { padding-left: 256px; } }
+    @media (max-width: 767px) { .menu-btn { display: flex !important; } .sidebar { left: -260px; } #user-display { display: none; } }
     .view { display: none; animation: slide-up 0.3s ease; }
     .view.active { display: block; }
     .view-title { font-family: var(--font-display); color: var(--cyan-neon); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); font-size: 1.4rem; }
-
     .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
     @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
-    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; display: flex; align-items: center; gap: 12px; }
-    .stat-icon { font-size: 1.5rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(0,212,255,0.1); border-radius: var(--radius-sm); }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+    .stat-icon { font-size: 1.5rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(0,212,255,0.1); border-radius: 8px; }
     .stat-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
     .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
-
-    .dashboard-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; margin-bottom: 16px; }
+    .dashboard-section { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
     .dashboard-section h3 { font-family: var(--font-display); margin-bottom: 16px; color: var(--text-secondary); font-size: 1rem; }
     .activity-grid { display: grid; gap: 16px; }
     @media (min-width: 600px) { .activity-grid { grid-template-columns: 1fr 1fr; } }
     .activity-column h4 { color: var(--cyan-neon); margin-bottom: 10px; font-size: 0.95rem; padding-bottom: 8px; border-bottom: 1px solid var(--border-color); }
     .activity-list { list-style: none; max-height: 300px; overflow-y: auto; padding-right: 4px; }
-    .activity-list::-webkit-scrollbar { width: 4px; }
-    .activity-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
-    .activity-item { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; border-left: 3px solid var(--cyan-neon); font-size: 0.85rem; }
+    .activity-item { background: var(--bg-secondary); border-radius: 8px; padding: 10px; margin-bottom: 8px; border-left: 3px solid var(--cyan-neon); font-size: 0.85rem; }
     .activity-item .time { color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 4px; }
     .text-muted { color: var(--text-muted); text-align: center; padding: 10px; }
-
-    .search-container { margin-bottom: 16px; }
-    .search-input { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 16px; color: var(--text-primary); width: 100%; font-size: 0.95rem; transition: var(--transition); }
-    .search-input:focus { outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 0 3px var(--cyan-glow); }
-    .search-input::placeholder { color: var(--text-muted); }
-
-    .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
-    .data-table th { background: var(--bg-secondary); padding: 12px; text-align: left; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
-    .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
-    .data-table tr:hover { background: var(--bg-hover); }
-    .data-table code { background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; color: var(--cyan-neon); font-size: 0.75rem; }
-    .data-table a { color: var(--cyan-neon); text-decoration: none; }
-    .status { padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
-    .status-si, .status-disponible, .status-devuelto { background: rgba(0,255,136,0.15); color: var(--success); }
-    .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
-    .status-desconocido, .status-prestado { background: rgba(255,170,0,0.15); color: var(--warning); }
-    .status-autorizado { background: rgba(0,212,255,0.15); color: var(--cyan-neon); }
-
-    .reportes-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px; }
-    @media (min-width: 600px) { .reportes-grid { grid-template-columns: repeat(2, 1fr); } }
-    .report-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; border-left: 4px solid var(--cyan-neon); }
-    .report-card.closed { opacity: 0.5; border-left-color: var(--text-muted); }
-    .report-urgencia { padding: 3px 8px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; color: #000; display: inline-block; }
-    .report-urgencia.alto { background: var(--red-alert); color: #fff; }
-    .report-urgencia.medio { background: var(--warning); }
-    .report-urgencia.bajo { background: var(--success); }
-
     .form-group { margin-bottom: 14px; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
     label { display: block; margin-bottom: 6px; color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; }
-    input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 10px; color: var(--text-primary); width: 100%; font-size: 0.95rem; }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 0 2px var(--cyan-glow); }
-    
-    .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; min-height: 44px; }
+    input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; color: var(--text-primary); width: 100%; font-size: 0.95rem; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--cyan-neon); }
+    .btn-primary, .btn-secondary { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; min-height: 44px; }
     .btn-primary { background: linear-gradient(135deg, var(--cyan-neon), #00a3cc); color: #000; }
     .btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
     .btn-sm { padding: 6px 12px; font-size: 0.8rem; min-height: 36px; }
     .btn-danger { color: var(--red-alert); background: rgba(255,0,64,0.1); border: 1px solid rgba(255,0,64,0.3); }
-    .btn-danger:hover { background: var(--red-alert); color: #fff; }
     .btn-full { width: 100%; }
     .mt-2 { margin-top: 16px; }
-
     .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; }
     .modal.active { display: flex; }
-    .modal-content { background: var(--bg-card); padding: 24px 20px; border-radius: var(--radius-md); width: 100%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; animation: slide-up 0.3s ease; }
-    .modal-close { position: absolute; top: 12px; right: 16px; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); background: none; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-    .modal-close:hover { color: var(--red-alert); }
-
-    .toast { position: fixed; bottom: 16px; left: 16px; right: 16px; background: var(--bg-card); border-left: 4px solid var(--cyan-neon); padding: 12px 16px; border-radius: var(--radius-sm); z-index: 2000; animation: slide-up 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.5); font-size: 0.9rem; }
+    .modal-content { background: var(--bg-card); padding: 24px 20px; border-radius: 12px; width: 100%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
+    .modal-close { position: absolute; top: 12px; right: 16px; font-size: 1.5rem; cursor: pointer; color: var(--text-muted); background: none; border: none; }
+    .toast { position: fixed; bottom: 16px; left: 16px; right: 16px; background: var(--bg-card); border-left: 4px solid var(--cyan-neon); padding: 12px 16px; border-radius: 8px; z-index: 2000; animation: slide-up 0.3s ease; }
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--red-alert); }
-    .hidden { display: none !important; }
-    .no-results { text-align: center; padding: 20px; color: var(--text-muted); display: none; }
-
+    .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; overflow-x: auto; margin-top: 16px; }
+    .data-table { width: 100%; border-collapse: collapse; }
+    .data-table th { background: var(--bg-secondary); padding: 12px; text-align: left; color: var(--text-secondary); font-size: 0.8rem; }
+    .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
+    .data-table code { background: var(--bg-secondary); padding: 2px 6px; border-radius: 4px; color: var(--cyan-neon); }
+    .status { padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 600; display: inline-block; }
+    .status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
+    .status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
     .prestamo-item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
     .prestamo-item-row select, .prestamo-item-row input { flex: 1; }
   </style>
 </head>
 <body>
-
   <div id="loading-overlay" class="loading-overlay">
     <div class="loader"></div>
     <p>Conectando...</p>
@@ -178,11 +116,10 @@
   <section id="login-section" class="auth-section" style="display: none;">
     <div class="auth-container">
       <h1 class="logo-title">CHAK' MO'OL</h1>
-      <p style="text-align:center;color:var(--gold-accent);margin-bottom:20px;font-size:0.9rem;">"U PÁAJTALIL MAAN"</p>
+      <p style="text-align:center;color:var(--gold-accent);margin-bottom:20px;">"U PÁAJTALIL MAAN"</p>
       <form id="login-form">
         <div class="form-group"><label>Usuario</label><input type="text" id="username" required></div>
         <div class="form-group"><label>Contraseña</label><input type="password" id="password" required></div>
-        <div id="login-error" style="color:var(--red-alert);margin-bottom:12px;font-size:0.85rem;"></div>
         <button type="submit" class="btn-primary btn-full">⚡ ACCEDER</button>
       </form>
     </div>
@@ -192,9 +129,7 @@
     <header class="main-header">
       <div class="header-left">
         <button id="menu-toggle" class="menu-btn">☰</button>
-        <div class="brand">
-          <h2>CHAK' MO'OL <span class="badge">PRO</span></h2>
-        </div>
+        <div class="brand"><h2>CHAK' MO'OL <span class="badge">PRO</span></h2></div>
       </div>
       <div class="header-right">
         <span id="user-display"></span>
@@ -212,15 +147,11 @@
         <button class="nav-item admin-only" data-view="prestamos" hidden>🔄 Préstamos</button>
         <button class="nav-item" data-view="reportes">🚨 Reportes</button>
       </nav>
-      <div class="sidebar-footer">
-        <p class="eslogan-small">"U PÁAJTALIL MAAN"</p>
-      </div>
+      <div class="sidebar-footer"><p class="eslogan-small">"U PÁAJTALIL MAAN"</p></div>
     </aside>
-
     <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
     <main id="main-content" class="main-content">
-      
       <div id="view-dashboard" class="view active">
         <h2 class="view-title">📈 Panel de Control</h2>
         <div class="stats-grid">
@@ -229,7 +160,6 @@
           <article class="stat-card"><div class="stat-icon">🔄</div><div><span class="stat-value" id="stat-loans">0</span><span class="stat-label">Préstamos</span></div></article>
           <article class="stat-card"><div class="stat-icon">🚨</div><div><span class="stat-value" id="stat-reports">0</span><span class="stat-label">Reportes</span></div></article>
         </div>
-        
         <div class="dashboard-section">
           <h3>📋 Actividad Reciente</h3>
           <div class="activity-grid">
@@ -243,7 +173,6 @@
             </div>
           </div>
         </div>
-
         <div class="dashboard-section">
           <h3>🔄 Préstamos Recientes</h3>
           <div class="activity-grid">
@@ -261,106 +190,24 @@
 
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Inventario</h2>
-        <div class="search-container">
-          <input type="text" id="inventory-search" class="search-input" placeholder="🔍 Buscar por nombre, ID, serie o categoría...">
-        </div>
-        <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
-          <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
-          <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
-        </div>
+        <button id="btn-add-item" class="btn-primary" style="margin-bottom:16px;">+ Nuevo Item</button>
         <div class="table-container">
           <table class="data-table">
-            <thead><tr><th>ID</th><th>Material</th><th>Serie</th><th>Cant.</th><th>Funciona</th><th>Estado</th><th>Datasheet</th><th>Comentarios</th><th>Acc.</th></tr></thead>
+            <thead><tr><th>ID</th><th>Material</th><th>Cant.</th><th>Estado</th><th>Acc.</th></tr></thead>
             <tbody id="inventory-body"></tbody>
           </table>
         </div>
-        <div id="search-no-results" class="no-results">No se encontraron resultados</div>
       </div>
 
       <div id="view-bitacora" class="view" hidden>
         <h2 class="view-title">📝 Bitácora</h2>
         <form id="bitacora-form" class="dashboard-section">
           <div class="form-group"><label>Título *</label><input type="text" id="bitacora-titulo" required></div>
-          <div class="form-row">
-            <div class="form-group"><label>Categoría</label>
-              <select id="bitacora-categoria">
-                <option value="mantenimiento">Mantenimiento</option>
-                <option value="desarrollo">Desarrollo</option>
-                <option value="evento">Evento</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Actividad *</label><input type="text" id="bitacora-actividad" required></div>
-          </div>
+          <div class="form-group"><label>Actividad *</label><textarea id="bitacora-actividad" rows="2" required></textarea></div>
           <button type="submit" class="btn-primary btn-full">📤 Registrar</button>
         </form>
-        <div class="table-container mt-2">
-          <table class="data-table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Título</th><th>Acc.</th></tr></thead><tbody id="bitacora-body"></tbody></table>
-        </div>
-      </div>
-
-      <div id="view-miembros" class="view admin-only" hidden>
-        <h2 class="view-title">👥 Miembros</h2>
-        <form id="miembro-form" class="dashboard-section">
-          <h3 style="margin-bottom:16px;color:var(--cyan-neon);">Nuevo Miembro</h3>
-          <div class="form-row">
-            <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required placeholder="ej: nuevo_usuario"></div>
-            <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required placeholder="••••••••"></div>
-          </div>
-          <div class="form-row">
-            <div class="form-group"><label>Nombre *</label><input type="text" id="miembro-nombre" required placeholder="Nombre completo"></div>
-            <div class="form-group"><label>Rol *</label>
-              <select id="miembro-rol" required>
-                <option value="miembro">Miembro</option>
-                <option value="administrador">Administrador</option>
-              </select>
-            </div>
-          </div>
-          <div class="form-group"><label>Área</label><input type="text" id="miembro-area" placeholder="Ej: Electrónica, Programación, etc."></div>
-          <button type="submit" class="btn-primary btn-full">💾 Guardar Miembro</button>
-        </form>
-        <div class="table-container mt-2">
-          <table class="data-table">
-            <thead><tr><th>User</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Acc.</th></tr></thead>
-            <tbody id="miembros-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="view-prestamos" class="view admin-only" hidden>
-        <h2 class="view-title">🔄 Préstamos</h2>
-        
-        <form id="prestamo-form" class="dashboard-section">
-          <h3 style="margin-bottom:16px;color:var(--cyan-neon);">📋 Nueva Solicitud de Préstamo</h3>
-          
-          <div class="form-group">
-            <label>Items a Prestar *</label>
-            <div id="prestamo-items-container">
-              <div class="prestamo-item-row">
-                <select class="prestamo-item-select" required>
-                  <option value="">Seleccionar item...</option>
-                </select>
-                <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-                <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
-              </div>
-            </div>
-            <button type="button" class="btn-secondary btn-sm" onclick="addPrestamoItem()" style="margin-top:10px;">+ Agregar otro item</button>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group"><label>Fecha de Préstamo *</label><input type="date" id="prestamo-fecha-inicio" required></div>
-            <div class="form-group"><label>Fecha de Devolución *</label><input type="date" id="prestamo-fecha-devolucion" required></div>
-          </div>
-          
-          <div class="form-group"><label>Motivo del Préstamo</label><textarea id="prestamo-motivo" rows="2" placeholder="Describe el propósito..."></textarea></div>
-          <div id="prestamo-error" style="color:var(--red-alert);margin-bottom:12px;font-size:0.85rem;"></div>
-          <button type="submit" class="btn-primary btn-full">✅ Solicitar Préstamo</button>
-        </form>
-        
-        <div class="table-container mt-2">
-          <table class="data-table">
-            <thead><tr><th>ID</th><th>Solicitante</th><th>Items</th><th>Estado</th><th>Acción</th></tr></thead>
-            <tbody id="prestamos-body"></tbody>
-          </table>
+        <div class="table-container">
+          <table class="data-table"><thead><tr><th>Fecha</th><th>Título</th><th>Acc.</th></tr></thead><tbody id="bitacora-body"></tbody></table>
         </div>
       </div>
 
@@ -368,28 +215,64 @@
         <h2 class="view-title">🚨 Reportes</h2>
         <form id="reporte-form" class="dashboard-section">
           <div class="form-group"><label>Título *</label><input type="text" id="reporte-titulo" required></div>
-          <div class="form-row">
-            <div class="form-group"><label>Urgencia</label>
-              <select id="reporte-urgencia">
-                <option value="bajo">🟢 Bajo</option>
-                <option value="medio">🟡 Medio</option>
-                <option value="alto">🔴 Alto</option>
-              </select>
-            </div>
-            <div class="form-group"><label>Categoría</label>
-              <select id="reporte-categoria">
-                <option value="fallo_tecnico">Fallo Técnico</option>
-                <option value="infraestructura">Infraestructura</option>
-                <option value="seguridad">Seguridad</option>
-              </select>
-            </div>
+          <div class="form-group"><label>Urgencia</label>
+            <select id="reporte-urgencia">
+              <option value="bajo">🟢 Bajo</option>
+              <option value="medio">🟡 Medio</option>
+              <option value="alto">🔴 Alto</option>
+            </select>
           </div>
           <div class="form-group"><label>Descripción</label><textarea id="reporte-descripcion" rows="2"></textarea></div>
           <button type="submit" class="btn-primary btn-full">🚨 Enviar</button>
         </form>
-        <div id="reportes-list" class="reportes-grid"></div>
+        <div id="reportes-list" style="margin-top:16px;"></div>
       </div>
 
+      <div id="view-miembros" class="view admin-only" hidden>
+        <h2 class="view-title">👥 Miembros</h2>
+        <form id="miembro-form" class="dashboard-section">
+          <div class="form-row">
+            <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required></div>
+            <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required></div>
+          </div>
+          <div class="form-group"><label>Nombre *</label><input type="text" id="miembro-nombre" required></div>
+          <div class="form-group"><label>Rol *</label>
+            <select id="miembro-rol" required>
+              <option value="miembro">Miembro</option>
+              <option value="administrador">Administrador</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary btn-full">💾 Guardar</button>
+        </form>
+        <div class="table-container">
+          <table class="data-table"><thead><tr><th>User</th><th>Nombre</th><th>Rol</th><th>Acc.</th></tr></thead><tbody id="miembros-body"></tbody></table>
+        </div>
+      </div>
+
+      <div id="view-prestamos" class="view admin-only" hidden>
+        <h2 class="view-title">🔄 Préstamos</h2>
+        <form id="prestamo-form" class="dashboard-section">
+          <div class="form-group">
+            <label>Items *</label>
+            <div id="prestamo-items-container">
+              <div class="prestamo-item-row">
+                <select class="prestamo-item-select" required><option value="">Seleccionar...</option></select>
+                <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+                <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
+              </div>
+            </div>
+            <button type="button" class="btn-secondary btn-sm" onclick="addPrestamoItem()" style="margin-top:10px;">+ Agregar</button>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Fecha Préstamo *</label><input type="date" id="prestamo-fecha-inicio" required></div>
+            <div class="form-group"><label>Fecha Devolución *</label><input type="date" id="prestamo-fecha-devolucion" required></div>
+          </div>
+          <button type="submit" class="btn-primary btn-full">✅ Solicitar</button>
+        </form>
+        <div class="table-container">
+          <table class="data-table"><thead><tr><th>ID</th><th>Solicitante</th><th>Items</th><th>Estado</th></tr></thead><tbody id="prestamos-body"></tbody></table>
+        </div>
+      </div>
     </main>
   </section>
 
@@ -404,30 +287,345 @@
           <div class="form-group"><label>Serie</label><input type="text" id="item-serie"></div>
           <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1" min="1"></div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label>Estado</label>
-            <select id="item-estado">
-              <option value="disponible">Disponible</option>
-              <option value="prestado">Prestado</option>
-              <option value="mantenimiento">Mantenimiento</option>
-              <option value="dañado">Dañado</option>
-            </select>
-          </div>
-          <div class="form-group"><label>¿Funciona?</label>
-            <select id="item-funciona">
-              <option value="si">Sí</option>
-              <option value="no">No</option>
-              <option value="desconocido">Desconocido</option>
-            </select>
-          </div>
+        <div class="form-group"><label>Estado</label>
+          <select id="item-estado">
+            <option value="disponible">Disponible</option>
+            <option value="prestado">Prestado</option>
+            <option value="mantenimiento">Mantenimiento</option>
+          </select>
         </div>
-        <div class="form-group"><label>URL Datasheet</label><input type="url" id="item-datasheet" placeholder="https://..."></div>
-        <div class="form-group"><label>Comentarios</label><textarea id="item-comentarios" rows="2"></textarea></div>
         <button type="submit" class="btn-primary btn-full">💾 Guardar</button>
       </form>
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://wmoejlgebchqtchzopuf.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtb2VqbGdlYmNocXRjaHpvcHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Njg0MjksImV4cCI6MjA5MzA0NDQyOX0.lK3BKNmCHlMIDtLWOAwsyvuWNMvIcgQvzUH0IjYZ9y4';
+    const ADMIN_USERS = [
+      { username: 'luis', password: 'LECR1123', nombre: 'Luis Enrique Canul Rosado', rol: 'administrador', id: 1 },
+      { username: 'sixto', password: 'sixto2026', nombre: 'Sixto', rol: 'administrador', id: 2 }
+    ];
+    let App = { user: null, isAdmin: false, supabase: null };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => { const loader = document.getElementById('loading-overlay'); if (loader) loader.classList.add('hidden'); }, 500);
+      if (window.supabase) { App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); console.log("✅ Supabase conectado"); }
+      document.getElementById('login-section').style.display = 'flex';
+      document.getElementById('app-section').style.display = 'none';
+      setupEvents();
+    });
+
+    function setupEvents() {
+      const menuToggle = document.getElementById('menu-toggle');
+      const sidebar = document.getElementById('sidebar');
+      const sidebarOverlay = document.getElementById('sidebar-overlay');
+      
+      function toggleSidebar() { sidebar.classList.toggle('open'); sidebarOverlay.classList.toggle('active'); }
+      function closeSidebar() { sidebar.classList.remove('open'); sidebarOverlay.classList.remove('active'); }
+      
+      if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
+      if (sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+      document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const u = document.getElementById('username').value.trim().toLowerCase();
+        const p = document.getElementById('password').value;
+        const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
+        if (master) { loginSuccess(master); return; }
+        if (!App.supabase) return showToast('❌ Error de conexión', 'error');
+        const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
+        if (error || !data) showToast('❌ Credenciales incorrectas', 'error');
+        else loginSuccess(data);
+      });
+
+      document.getElementById('logout-btn')?.addEventListener('click', () => { App.user = null; App.isAdmin = false; document.getElementById('app-section').style.display = 'none'; document.getElementById('login-section').style.display = 'flex'; });
+
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const view = e.currentTarget.dataset.view;
+          if (!view) return;
+          if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) { showToast('🔐 Solo administradores', 'error'); return; }
+          document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
+          document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+          const target = document.getElementById('view-' + view);
+          if (target) { target.classList.add('active'); target.hidden = false; }
+          e.currentTarget.classList.add('active');
+          if (view === 'dashboard') loadDashboard();
+          if (view === 'inventario') loadInventory();
+          if (view === 'bitacora') loadBitacora();
+          if (view === 'reportes') loadReportes();
+          if (view === 'miembros' && App.isAdmin) loadMembers();
+          if (view === 'prestamos' && App.isAdmin) loadPrestamos();
+          if (window.innerWidth < 768) closeSidebar();
+        });
+      });
+
+      document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!App.supabase) return;
+        try {
+          await App.supabase.from('bitacoras').insert([{ usuario_id: App.user.id, nombre_usuario: App.user.nombre || App.user.username, titulo: document.getElementById('bitacora-titulo').value, actividad: document.getElementById('bitacora-actividad').value, fecha: new Date().toISOString() }]);
+          showToast('✅ Guardada', 'success'); e.target.reset(); loadBitacora(); loadDashboard();
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      });
+
+      document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!App.supabase) return;
+        try {
+          await App.supabase.from('reportes').insert([{ usuario_id: App.user.id, nombre_usuario: App.user.nombre || App.user.username, titulo: document.getElementById('reporte-titulo').value, descripcion: document.getElementById('reporte-descripcion').value, urgencia: document.getElementById('reporte-urgencia').value, estado: 'abierto', created_at: new Date().toISOString() }]);
+          showToast('✅ Reporte creado', 'success'); e.target.reset(); loadReportes(); loadDashboard();
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      });
+
+      const modal = document.getElementById('item-modal');
+      document.querySelector('.modal-close')?.addEventListener('click', () => modal.classList.remove('active'));
+      modal?.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+
+      document.getElementById('btn-add-item')?.addEventListener('click', () => {
+        document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
+        document.getElementById('item-form').reset();
+        document.getElementById('item-id').value = '';
+        modal.classList.add('active');
+      });
+
+      document.getElementById('item-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!App.supabase) return;
+        try {
+          const id = document.getElementById('item-id').value;
+          const item = {
+            nombre: document.getElementById('item-nombre').value,
+            numero_serie: document.getElementById('item-serie').value || 'N/A',
+            cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
+            estado: document.getElementById('item-estado').value
+          };
+          if (id) { await App.supabase.from('inventario').update(item).eq('id', id); showToast('✅ Actualizado', 'success'); }
+          else {
+            item.id = 'LAB-' + Date.now().toString().slice(-8);
+            item.created_at = new Date().toISOString();
+            await App.supabase.from('inventario').insert([item]);
+            showToast('✅ Creado', 'success');
+          }
+          modal.classList.remove('active'); loadInventory();
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      });
+
+      document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!App.supabase) return;
+        try {
+          const items = [];
+          document.querySelectorAll('.prestamo-item-row').forEach(row => {
+            const itemId = row.querySelector('.prestamo-item-select').value;
+            const cantidad = parseInt(row.querySelector('.prestamo-cantidad').value);
+            if (itemId && cantidad > 0) items.push({ item_id: itemId, cantidad });
+          });
+          if (items.length === 0) throw new Error('Selecciona al menos un item');
+          await App.supabase.from('prestamos').insert([{ usuario_id: App.user.id, nombre_solicitante: App.user.nombre || App.user.username, items: items, fecha_prestamo: document.getElementById('prestamo-fecha-inicio').value, fecha_devolucion: document.getElementById('prestamo-fecha-devolucion').value, estado: 'autorizado', created_at: new Date().toISOString() }]);
+          showToast('✅ Préstamo registrado', 'success'); e.target.reset(); loadPrestamos(); loadDashboard();
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      });
+
+      document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!App.supabase) return;
+        try {
+          await App.supabase.from('usuarios').insert([{ username: document.getElementById('miembro-username').value.trim(), password: document.getElementById('miembro-password').value, nombre_completo: document.getElementById('miembro-nombre').value.trim(), rol: document.getElementById('miembro-rol').value, created_at: new Date().toISOString() }]);
+          showToast('✅ Miembro creado', 'success'); e.target.reset(); loadMembers();
+        } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      });
+    }
+
+    function loginSuccess(user) {
+      App.user = user;
+      App.isAdmin = user.rol === 'administrador';
+      document.getElementById('login-section').style.display = 'none';
+      document.getElementById('app-section').style.display = 'block';
+      document.getElementById('user-display').textContent = (user.nombre || user.username).split(' ')[0];
+      const badge = document.getElementById('role-badge');
+      badge.textContent = user.rol;
+      badge.className = App.isAdmin ? 'role-badge admin' : 'role-badge';
+      document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
+      loadDashboard();
+    }
+
+    async function loadDashboard() {
+      if (!App.supabase) return;
+      console.log('🔄 Cargando dashboard...');
+      
+      try {
+        // Stats
+        const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
+        const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
+        const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+        const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente', 'AUTORIZADO', 'PENDIENTE']);
+        
+        document.getElementById('stat-inventory').textContent = inv || 0;
+        document.getElementById('stat-members').textContent = mem || 0;
+        document.getElementById('stat-reports').textContent = rep || 0;
+        document.getElementById('stat-loans').textContent = loans || 0;
+        console.log(`✅ Stats: Inv=${inv}, Mem=${mem}, Rep=${rep}, Loans=${loans}`);
+
+        // Bitácoras
+        const {  bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+        const bitList = document.getElementById('dashboard-bitacora-list');
+        if (bitList) {
+          if (bits && bits.length > 0) {
+            bitList.innerHTML = bits.map(b => `<li class="activity-item"><span class="time">${new Date(b.fecha).toLocaleString()}</span><strong>${b.titulo || 'Sin título'}</strong></li>`).join('');
+          } else { bitList.innerHTML = '<li class="text-muted">Sin bitácoras</li>'; }
+        }
+        console.log('📦 Bitácoras:', bits?.length || 0);
+
+        // Reportes ✅
+        console.log('🚨 Cargando reportes...');
+        const {  reps, error: repsError } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
+        if (repsError) console.error('❌ Error reportes:', repsError);
+        console.log('📦 Reportes obtenidos:', reps?.length || 0);
+        if (reps && reps.length > 0) console.log('📋 Primer reporte:', reps[0]);
+        
+        const repList = document.getElementById('dashboard-reportes-list');
+        const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
+        if (repList) {
+          if (reps && reps.length > 0) {
+            repList.innerHTML = reps.map(r => {
+              const color = colors[r.urgencia] || '#00d4ff';
+              return `<li class="activity-item" style="border-left:4px solid ${color}"><span class="time">${new Date(r.created_at).toLocaleString()}</span><strong style="color:${color}">[${(r.urgencia||'N/A').toUpperCase()}]</strong> <span>${r.titulo || 'Sin título'}</span></li>`;
+            }).join('');
+            console.log('✅ Reportes renderizados');
+          } else {
+            console.warn('⚠️ No hay reportes');
+            repList.innerHTML = '<li class="text-muted">Sin reportes</li>';
+          }
+        }
+
+        // Préstamos
+        const {  prestamos } = await App.supabase.from('prestamos').select('*').in('estado', ['autorizado', 'AUTORIZADO']).order('created_at', { ascending: false }).limit(5);
+        const presList = document.getElementById('dashboard-prestamos-list');
+        if (presList) {
+          if (prestamos && prestamos.length > 0) {
+            presList.innerHTML = prestamos.map(p => `<li class="activity-item"><span class="time">${new Date(p.fecha_prestamo).toLocaleDateString()}</span><strong>📤 ${p.nombre_solicitante}</strong></li>`).join('');
+          } else { presList.innerHTML = '<li class="text-muted">Sin préstamos</li>'; }
+        }
+
+        // Devoluciones
+        const {  devs } = await App.supabase.from('prestamos').select('*').in('estado', ['devuelto', 'DEVUELTO']).order('fecha_confirmacion', { ascending: false }).limit(5);
+        const devList = document.getElementById('dashboard-devoluciones-list');
+        if (devList) {
+          if (devs && devs.length > 0) {
+            devList.innerHTML = devs.map(d => `<li class="activity-item"><span class="time">${new Date(d.fecha_confirmacion).toLocaleDateString()}</span><strong>📥 ${d.nombre_solicitante}</strong></li>`).join('');
+          } else { devList.innerHTML = '<li class="text-muted">Sin devoluciones</li>'; }
+        }
+
+        console.log('✅ Dashboard cargado');
+      } catch (err) {
+        console.error('💥 Error dashboard:', err);
+      }
+    }
+
+    async function loadBitacora() {
+      if (!App.supabase) return;
+      const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
+      const tbody = document.getElementById('bitacora-body');
+      if (tbody) {
+        if (data && data.length > 0) {
+          tbody.innerHTML = data.map(b => `<tr><td>${new Date(b.fecha).toLocaleString()}</td><td>${b.titulo}</td><td>${App.isAdmin ? `<button class="btn-sm btn-danger" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td></tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="3">Sin registros</td></tr>'; }
+      }
+    }
+
+    async function loadReportes() {
+      if (!App.supabase) return;
+      const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
+      const container = document.getElementById('reportes-list');
+      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
+      if (container) {
+        if (data && data.length > 0) {
+          container.innerHTML = data.map(r => `<div style="background:var(--bg-card);padding:16px;border-radius:8px;margin-bottom:12px;border-left:4px solid ${colors[r.urgencia]};"><strong>${r.titulo}</strong><p style="color:var(--text-muted);margin-top:8px">${r.descripcion||''}</p><small>${r.nombre_usuario} - ${r.estado}</small></div>`).join('');
+        } else { container.innerHTML = '<p class="text-muted">Sin reportes</p>'; }
+      }
+    }
+
+    async function loadInventory() {
+      if (!App.supabase) return;
+      const { data } = await App.supabase.from('inventario').select('*');
+      const tbody = document.getElementById('inventory-body');
+      if (tbody) {
+        if (data && data.length > 0) {
+          tbody.innerHTML = data.map(i => `<tr><td><code>${i.id}</code></td><td>${i.nombre}</td><td>${i.cantidad}</td><td><span class="status status-${i.estado}">${i.estado}</span></td><td><button class="btn-sm" onclick="editItem('${i.id}')">✏️</button></td></tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="5">Sin registros</td></tr>'; }
+      }
+    }
+
+    async function loadMembers() {
+      if (!App.supabase) return;
+      const { data } = await App.supabase.from('usuarios').select('*').order('username');
+      const tbody = document.getElementById('miembros-body');
+      if (tbody) {
+        if (data && data.length > 0) {
+          tbody.innerHTML = data.map(m => `<tr><td>@${m.username}</td><td>${m.nombre_completo||'-'}</td><td>${m.rol}</td><td>${App.isAdmin && m.username!=='luis' && m.username!=='sixto' ? `<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>` : '🔒'}</td></tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="4">Sin registros</td></tr>'; }
+      }
+    }
+
+    async function loadPrestamos() {
+      if (!App.supabase) return;
+      const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
+      const tbody = document.getElementById('prestamos-body');
+      if (tbody) {
+        if (data && data.length > 0) {
+          tbody.innerHTML = data.map(l => `<tr><td><code>${l.id?.substring(0,8)}</code></td><td>${l.nombre_solicitante}</td><td>${l.items?.length||0} items</td><td>${l.estado}</td></tr>`).join('');
+        } else { tbody.innerHTML = '<tr><td colspan="4">Sin préstamos</td></tr>'; }
+      }
+    }
+
+    window.addPrestamoItem = function() {
+      const container = document.getElementById('prestamo-items-container');
+      const row = document.createElement('div');
+      row.className = 'prestamo-item-row';
+      row.innerHTML = `<select class="prestamo-item-select" required><option value="">Seleccionar...</option></select><input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required><button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>`;
+      container.appendChild(row);
+    };
+
+    window.removePrestamoItem = function(btn) {
+      const rows = document.querySelectorAll('.prestamo-item-row');
+      if (rows.length > 1) btn.parentElement.remove();
+    };
+
+    window.editItem = async function(id) {
+      if (!App.supabase) return;
+      const { data: item } = await App.supabase.from('inventario').select('*').eq('id', id).single();
+      if (item) {
+        document.getElementById('item-id').value = item.id;
+        document.getElementById('item-nombre').value = item.nombre;
+        document.getElementById('item-serie').value = item.numero_serie || '';
+        document.getElementById('item-cantidad').value = item.cantidad;
+        document.getElementById('item-estado').value = item.estado;
+        document.getElementById('item-modal').classList.add('active');
+      }
+    };
+
+    window.deleteBitacora = async function(id) {
+      if (!confirm('¿Eliminar?')) return;
+      await App.supabase.from('bitacoras').delete().eq('id', id);
+      loadBitacora(); loadDashboard();
+    };
+
+    window.deleteMember = async function(username) {
+      if (!confirm('¿Eliminar?')) return;
+      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
+      await App.supabase.from('usuarios').delete().eq('username', username);
+      loadMembers();
+    };
+
+    function showToast(msg, type = 'info') {
+      const d = document.createElement('div');
+      d.className = `toast ${type}`;
+      d.textContent = msg;
+      document.body.appendChild(d);
+      setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 300); }, 3000);
+    }
+  </script>
 </body>
 </html>
