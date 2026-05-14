@@ -113,7 +113,7 @@
     .search-input::placeholder { color: var(--text-muted); }
 
     .table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
-    .data-table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+    .data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
     .data-table th { background: var(--bg-secondary); padding: 12px; text-align: left; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
     .data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; }
     .data-table tr:hover { background: var(--bg-hover); }
@@ -301,11 +301,11 @@
         <form id="miembro-form" class="dashboard-section">
           <h3 style="margin-bottom:16px;color:var(--cyan-neon);">Nuevo Miembro</h3>
           <div class="form-row">
-            <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required></div>
-            <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required></div>
+            <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required placeholder="ej: nuevo_usuario"></div>
+            <div class="form-group"><label>Contraseña *</label><input type="password" id="miembro-password" required placeholder="••••••••"></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Nombre *</label><input type="text" id="miembro-nombre" required></div>
+            <div class="form-group"><label>Nombre *</label><input type="text" id="miembro-nombre" required placeholder="Nombre completo"></div>
             <div class="form-group"><label>Rol *</label>
               <select id="miembro-rol" required>
                 <option value="miembro">Miembro</option>
@@ -313,12 +313,12 @@
               </select>
             </div>
           </div>
-          <div class="form-group"><label>Área</label><input type="text" id="miembro-area"></div>
+          <div class="form-group"><label>Área</label><input type="text" id="miembro-area" placeholder="Ej: Electrónica, Programación, etc."></div>
           <button type="submit" class="btn-primary btn-full">💾 Guardar Miembro</button>
         </form>
         <div class="table-container mt-2">
           <table class="data-table">
-            <thead><tr><th>ID</th><th>User</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Acc.</th></tr></thead>
+            <thead><tr><th>User</th><th>Nombre</th><th>Rol</th><th>Área</th><th>Acc.</th></tr></thead>
             <tbody id="miembros-body"></tbody>
           </table>
         </div>
@@ -520,6 +520,7 @@
         });
       });
 
+      // BÚSQUEDA INVENTARIO
       const searchInput = document.getElementById('inventory-search');
       if (searchInput) {
         searchInput.addEventListener('input', (e) => {
@@ -528,6 +529,7 @@
         });
       }
 
+      // EXPORTAR
       document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
         try {
           const { data, error } = await App.supabase.from('inventario').select('*');
@@ -570,6 +572,7 @@
         }
       });
 
+      // BITÁCORA FORM
       document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -587,19 +590,40 @@
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
       });
 
+      // MIEMBROS FORM
       document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
+          const username = document.getElementById('miembro-username').value.trim();
+          const password = document.getElementById('miembro-password').value;
+          const nombre = document.getElementById('miembro-nombre').value.trim();
+          const rol = document.getElementById('miembro-rol').value;
+          const area = document.getElementById('miembro-area').value.trim();
+          
+          if (!username || !password || !nombre) {
+            showToast('Completa todos los campos obligatorios', 'error');
+            return;
+          }
+          
+          // Verificar si el usuario ya existe
+          const {  existing } = await App.supabase.from('usuarios').select('username').eq('username', username).single();
+          if (existing) {
+            showToast('El usuario ya existe', 'error');
+            return;
+          }
+          
           const { error } = await App.supabase.from('usuarios').insert([{
-            username: document.getElementById('miembro-username').value.trim(),
-            password: document.getElementById('miembro-password').value,
-            nombre_completo: document.getElementById('miembro-nombre').value.trim(),
-            rol: document.getElementById('miembro-rol').value,
-            area: document.getElementById('miembro-area').value.trim(),
+            username: username,
+            password: password,
+            nombre_completo: nombre,
+            rol: rol,
+            area: area || '',
             created_at: new Date().toISOString()
           }]);
+          
           if (error) throw error;
-          showToast('✅ Miembro creado', 'success');
+          
+          showToast('✅ Miembro creado exitosamente', 'success');
           e.target.reset();
           loadMembers();
         } catch (err) {
@@ -607,6 +631,7 @@
         }
       });
 
+      // PRÉSTAMOS FORM
       document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         document.getElementById('prestamo-error').textContent = '';
@@ -631,7 +656,7 @@
                 throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}`);
               }
               
-              items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
+              items.push({ item_id: itemId, cantidad: cantidad, nombre: itemData.nombre });
             }
           }
           
@@ -640,8 +665,12 @@
           const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
           const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
           
+          if (!fechaInicio || !fechaDevolucion) {
+            throw new Error('Debes seleccionar ambas fechas');
+          }
+          
           if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
-            throw new Error('La fecha de devolución debe ser posterior');
+            throw new Error('La fecha de devolución debe ser posterior a la de préstamo');
           }
           
           const prestamoData = {
@@ -650,7 +679,7 @@
             items: items,
             fecha_prestamo: fechaInicio,
             fecha_devolucion: fechaDevolucion,
-            motivo: document.getElementById('prestamo-motivo').value,
+            motivo: document.getElementById('prestamo-motivo').value || '',
             estado: 'autorizado',
             autorizado_por: App.user.id,
             created_at: new Date().toISOString()
@@ -659,9 +688,10 @@
           const { error } = await App.supabase.from('prestamos').insert([prestamoData]);
           if (error) throw error;
           
-          showToast('✅ Préstamo registrado', 'success');
+          showToast('✅ Préstamo registrado exitosamente', 'success');
           e.target.reset();
           
+          // Reset item rows
           document.getElementById('prestamo-items-container').innerHTML = `
             <div class="prestamo-item-row">
               <select class="prestamo-item-select" required>
@@ -681,6 +711,7 @@
         }
       });
 
+      // REPORTES FORM
       document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -700,6 +731,7 @@
         } catch (err) { showToast('Error: ' + err.message, 'error'); }
       });
 
+      // MODAL INVENTARIO
       const modal = document.getElementById('item-modal');
       document.querySelector('.modal-close')?.addEventListener('click', () => modal.classList.remove('active'));
       modal?.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
@@ -768,6 +800,7 @@
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
 
+        // BITÁCORAS
         const {  bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
         const bitList = document.getElementById('dashboard-bitacora-list');
         if (bitList) {
@@ -783,6 +816,7 @@
           }
         }
 
+        // REPORTES
         const {  reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
@@ -800,6 +834,7 @@
           }
         }
 
+        // PRÉSTAMOS
         const {  pres } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(3);
         const presList = document.getElementById('dashboard-prestamos-list');
         if (presList) {
@@ -814,6 +849,7 @@
           }
         }
 
+        // DEVOLUCIONES
         const {  devs } = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(3);
         const devList = document.getElementById('dashboard-devoluciones-list');
         if (devList) {
@@ -963,15 +999,14 @@
           if (data && data.length > 0) {
             tbody.innerHTML = data.map(m => `
               <tr>
-                <td>${m.id || 'N/A'}</td>
                 <td>@${m.username || 'N/A'}</td>
                 <td>${m.nombre_completo || m.nombre || '-'}</td>
-                <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${m.rol || 'miembro'}</span></td>
+                <td><span class="role-badge ${m.rol==='administrador'?'admin':''}">${(m.rol || 'miembro').toUpperCase()}</span></td>
                 <td>${m.area || '-'}</td>
                 <td>${m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm btn-danger" onclick="deleteMember('${m.username}')">🗑️</button>` : '🔒'}</td>
               </tr>`).join('');
           } else {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#666;">Sin registros</td></tr>';
           }
         }
       } catch (err) { console.error('Error loadMembers:', err); }
@@ -983,6 +1018,7 @@
         const { data } = await App.supabase.from('prestamos').select('*').order('created_at', { ascending: false });
         const tbody = document.getElementById('prestamos-body');
         
+        // Cargar items para el formulario
         await loadPrestamoItems();
         
         if (tbody) {
@@ -995,6 +1031,8 @@
                 acciones = `<button class="btn-sm btn-primary" onclick="requestReturn('${l.id}')">🔄 Devolver</button>`;
               } else if (l.estado === 'devolucion_pendiente') {
                 acciones = '<span class="status status-prestado">⏳ Pendiente</span>';
+              } else if (l.estado === 'devuelto') {
+                acciones = '<span style="color:#28a745;font-size:0.8rem">✓ Completado</span>';
               }
               
               return `<tr>
@@ -1019,8 +1057,10 @@
         const selects = document.querySelectorAll('.prestamo-item-select');
         
         selects.forEach(select => {
+          const currentVal = select.value;
           select.innerHTML = '<option value="">Seleccionar item...</option>' + 
             (data ? data.map(item => `<option value="${item.id}" data-stock="${item.cantidad}">${item.nombre} (Disp: ${item.cantidad})</option>`).join('') : '');
+          if (currentVal) select.value = currentVal;
         });
       } catch (err) { console.error('Error loading items:', err); }
     }
@@ -1046,9 +1086,12 @@
     };
 
     window.requestReturn = async function(id) {
-      if (!confirm('¿Confirmar devolución?')) return;
+      if (!confirm('¿Confirmar devolución de este préstamo?')) return;
       try {
-        await App.supabase.from('prestamos').update({ estado: 'devuelto' }).eq('id', id);
+        await App.supabase.from('prestamos').update({ 
+          estado: 'devuelto',
+          fecha_confirmacion: new Date().toISOString()
+        }).eq('id', id);
         showToast('✅ Devolución confirmada', 'success');
         loadPrestamos(); loadDashboard();
       } catch (err) { showToast('Error: ' + err.message, 'error'); }
@@ -1056,17 +1099,17 @@
 
     window.deleteReport = async (id) => {
       if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
-      if (!confirm('¿Eliminar este reporte?')) return;
+      if (!confirm('¿Eliminar este reporte permanentemente?')) return;
       try {
         await App.supabase.from('reportes').delete().eq('id', id);
-        showToast('🗑️ Eliminado', 'success');
+        showToast('🗑️ Reporte eliminado', 'success');
         loadReportes(); loadDashboard();
       } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
 
     window.deleteBitacora = async (id) => {
       if (!App.isAdmin) return showToast('🔐 Solo administradores', 'error');
-      if (!confirm('¿Eliminar?')) return;
+      if (!confirm('¿Eliminar esta bitácora?')) return;
       try {
         await App.supabase.from('bitacoras').delete().eq('id', id);
         showToast('🗑️ Eliminada', 'success');
@@ -1077,7 +1120,7 @@
     window.closeReport = async (id) => {
       try {
         await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
-        showToast('✅ Cerrado', 'success');
+        showToast('✅ Reporte cerrado', 'success');
         loadReportes(); loadDashboard();
       } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
@@ -1108,7 +1151,7 @@
     };
 
     window.deleteItem = async (id) => {
-      if (!confirm('¿Eliminar?')) return;
+      if (!confirm('¿Eliminar este item?')) return;
       try {
         await App.supabase.from('inventario').delete().eq('id', id);
         showToast('🗑️ Eliminado', 'success');
@@ -1117,11 +1160,11 @@
     };
     
     window.deleteMember = async (username) => {
-      if (!confirm(`¿Eliminar a ${username}?`)) return;
-      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
+      if (!confirm(`¿Eliminar a @${username}?`)) return;
+      if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins principales', 'error');
       try {
         await App.supabase.from('usuarios').delete().eq('username', username);
-        showToast('🗑️ Eliminado', 'success');
+        showToast('🗑️ Miembro eliminado', 'success');
         loadMembers();
       } catch (err) { showToast('Error: ' + err.message, 'error'); }
     };
