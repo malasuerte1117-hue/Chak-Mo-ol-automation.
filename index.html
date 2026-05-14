@@ -107,17 +107,22 @@
     .activity-item { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 8px; border-left: 3px solid var(--cyan-neon); font-size: 0.85rem; }
     .activity-item .time { color: var(--text-muted); font-size: 0.75rem; display: block; margin-bottom: 4px; }
 
-    /* BÚSQUEDA INVENTARIO */
-    .search-container { margin-bottom: 16px; }
+    /* BÚSQUEDA INVENTARIO - CORREGIDO */
+    .search-container { 
+      margin-bottom: 16px; 
+      display: block !important;
+      visibility: visible !important;
+    }
     .search-input {
       background: var(--bg-secondary);
       border: 1px solid var(--border-color);
       border-radius: var(--radius-sm);
-      padding: 10px 16px;
+      padding: 12px 16px;
       color: var(--text-primary);
       width: 100%;
       font-size: 0.95rem;
       transition: var(--transition);
+      display: block !important;
     }
     .search-input:focus {
       outline: none;
@@ -173,7 +178,7 @@
     .toast.success { border-left-color: var(--success); }
     .toast.error { border-left-color: var(--red-alert); }
     .hidden { display: none !important; }
-    .no-results { text-align: center; padding: 20px; color: var(--text-muted); }
+    .no-results { text-align: center; padding: 20px; color: var(--text-muted); display: none; }
   </style>
 </head>
 <body>
@@ -270,9 +275,9 @@
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Inventario</h2>
         
-        <!-- CAMPO DE BÚSQUEDA -->
+        <!-- CAMPO DE BÚSQUEDA - CORREGIDO -->
         <div class="search-container">
-          <input type="text" id="inventory-search" class="search-input" placeholder="🔍 Buscar por nombre, ID o serie...">
+          <input type="text" id="inventory-search" class="search-input" placeholder="🔍 Buscar por nombre, ID, serie o categoría...">
         </div>
         
         <div style="margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;">
@@ -285,7 +290,7 @@
             <tbody id="inventory-body"></tbody>
           </table>
         </div>
-        <div id="search-no-results" class="no-results" style="display:none;">No se encontraron resultados</div>
+        <div id="search-no-results" class="no-results">No se encontraron resultados</div>
       </div>
 
       <div id="view-bitacora" class="view" hidden>
@@ -396,7 +401,7 @@
     ];
 
     let App = { user: null, isAdmin: false, supabase: null };
-    let inventoryCache = []; // Cache para búsqueda
+    let inventoryCache = [];
 
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(() => { 
@@ -490,6 +495,49 @@
         });
       }
 
+      // EXPORTAR EXCEL - RESTAURADO
+      document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
+        try {
+          const { data, error } = await App.supabase.from('inventario').select('*');
+          if (error || !data || data.length === 0) {
+            showToast('Sin datos para exportar', 'warning');
+            return;
+          }
+          
+          const headers = ['ID', 'Material', 'Numero_Serie', 'Cantidad', 'Funciona', 'Estado', 'Categoria', 'Datasheet', 'Comentarios'];
+          let csvContent = headers.join(',') + '\n';
+          
+          data.forEach(row => {
+            const values = [
+              row.id || '',
+              `"${(row.nombre || '').replace(/"/g, '""')}"`,
+              `"${(row.numero_serie || '').replace(/"/g, '""')}"`,
+              row.cantidad || 0,
+              row.funciona || '',
+              row.estado || '',
+              row.categoria || '',
+              row.datasheet || '',
+              `"${(row.comentarios || '').replace(/"/g, '""')}"`
+            ];
+            csvContent += values.join(',') + '\n';
+          });
+          
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a');
+          const url = URL.createObjectURL(blob);
+          link.setAttribute('href', url);
+          link.setAttribute('download', 'Inventario_CHAK_MOOL_' + new Date().toISOString().slice(0,10) + '.csv');
+          link.style.visibility = 'hidden';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          showToast('📦 Exportado correctamente', 'success');
+        } catch (err) {
+          showToast('Error al exportar: ' + err.message, 'error');
+        }
+      });
+
       document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         try {
@@ -581,7 +629,6 @@
       loadDashboard();
     }
 
-    // === DASHBOARD CON BITÁCORAS CORREGIDAS ===
     async function loadDashboard() {
       if (!App.supabase) return;
       try {
@@ -595,15 +642,14 @@
         document.getElementById('stat-reports').textContent = rep || 0;
         document.getElementById('stat-loans').textContent = loans || 0;
 
-        // BITÁCORAS
-        console.log('Cargando bitácoras...');
+        // BITÁCORAS - CORREGIDO
         const {  bits, error: bitError } = await App.supabase
           .from('bitacoras')
           .select('*')
           .order('fecha', { ascending: false })
           .limit(5);
         
-        console.log('Bitácoras:', bits, 'Error:', bitError);
+        console.log('Bitácoras dashboard:', bits, 'Error:', bitError);
         
         const bitList = document.getElementById('dashboard-bitacora-list');
         if (bitList) {
@@ -620,7 +666,7 @@
         }
 
         // REPORTES
-        const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
+        const {  reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
         const repList = document.getElementById('dashboard-reportes-list');
         const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
         if (repList) {
@@ -672,19 +718,16 @@
       }
     }
 
-    // === BÚSQUEDA EN INVENTARIO ===
     function filterInventory(query) {
       const tbody = document.getElementById('inventory-body');
       const noResults = document.getElementById('search-no-results');
       
       if (!query) {
-        // Mostrar todo si no hay búsqueda
         renderInventoryTable(inventoryCache);
-        noResults.style.display = 'none';
+        if (noResults) noResults.style.display = 'none';
         return;
       }
 
-      // Filtrar resultados
       const filtered = inventoryCache.filter(item => {
         const nombre = (item.nombre || '').toLowerCase();
         const id = (item.id || '').toLowerCase();
@@ -701,10 +744,10 @@
 
       if (filtered.length > 0) {
         renderInventoryTable(filtered);
-        noResults.style.display = 'none';
+        if (noResults) noResults.style.display = 'none';
       } else {
-        tbody.innerHTML = '';
-        noResults.style.display = 'block';
+        if (tbody) tbody.innerHTML = '';
+        if (noResults) noResults.style.display = 'block';
       }
     }
 
@@ -797,15 +840,14 @@
         const { data, error } = await App.supabase.from('inventario').select('*');
         console.log('Inventario cargado:', data, 'Error:', error);
         
-        // Guardar en cache para búsqueda
         inventoryCache = data || [];
         
-        // Limpiar búsqueda
         const searchInput = document.getElementById('inventory-search');
         if (searchInput) searchInput.value = '';
         
         renderInventoryTable(inventoryCache);
-        document.getElementById('search-no-results').style.display = 'none';
+        const noResults = document.getElementById('search-no-results');
+        if (noResults) noResults.style.display = 'none';
       } catch (err) {
         console.error('Error loadInventory:', err);
       }
