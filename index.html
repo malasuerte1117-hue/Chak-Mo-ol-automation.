@@ -12,10 +12,10 @@
 </head>
 <body>
 
+  <!-- LOADER CORREGIDO -->
   <div id="loading-overlay" class="loading-overlay">
     <div class="loader"></div>
     <p>Conectando con CHAK' MO'OL Core...</p>
-    <p id="loading-status" style="font-size: 0.8rem; color: #666; margin-top: 10px;"></p>
   </div>
 
   <section id="login-section" class="auth-section" style="display: none;">
@@ -43,7 +43,7 @@
   <section id="app-section" class="app-section" style="display: none;">
     <header class="main-header">
       <div class="header-left">
-        <button id="menu-toggle" class="menu-btn" aria-label="Menú">☰</button>
+        <button id="menu-toggle" class="menu-btn" aria-label="Menú"></button>
         <div class="brand">
           <h2>CHAK' MO'OL <span class="badge">PRO</span></h2>
           <p class="tagline">EL PODER DE IR MÁS ALLÁ</p>
@@ -52,7 +52,7 @@
       <div class="header-right">
         <span id="user-display"></span>
         <span id="role-badge" class="role-badge"></span>
-        <button id="logout-btn" class="btn-secondary">🚪 Salir</button>
+        <button id="logout-btn" class="btn-secondary"> Salir</button>
       </div>
     </header>
 
@@ -76,9 +76,9 @@
         <h2 class="view-title">📈 Panel de Control</h2>
         <div class="stats-grid">
           <article class="stat-card"><div class="stat-icon">📦</div><div><span class="stat-value" id="stat-inventory">0</span><span class="stat-label">Inventario</span></div></article>
-          <article class="stat-card"><div class="stat-icon">👥</div><div><span class="stat-value" id="stat-members">0</span><span class="stat-label">Miembros</span></div></article>
+          <article class="stat-card"><div class="stat-icon"></div><div><span class="stat-value" id="stat-members">0</span><span class="stat-label">Miembros</span></div></article>
           <article class="stat-card"><div class="stat-icon">🔄</div><div><span class="stat-value" id="stat-loans">0</span><span class="stat-label">Préstamos</span></div></article>
-          <article class="stat-card"><div class="stat-icon">🚨</div><div><span class="stat-value" id="stat-reports">0</span><span class="stat-label">Reportes</span></div></article>
+          <article class="stat-card"><div class="stat-icon"></div><div><span class="stat-value" id="stat-reports">0</span><span class="stat-label">Reportes</span></div></article>
         </div>
         
         <div class="dashboard-activity">
@@ -105,15 +105,16 @@
       </div>
 
       <div id="view-inventario" class="view" hidden>
-        <h2 class="view-title">📦 Gestión de Inventario</h2>
+        <h2 class="view-title"> Gestión de Inventario</h2>
         
+        <!-- NUEVO: BÚSQUEDA -->
         <div class="inventory-search">
           <input type="search" id="inventory-search" placeholder="🔍 Buscar por nombre, serie, categoría o comentario..." autocomplete="off">
-          <button id="search-clear" class="btn-secondary btn-sm" hidden>✕</button>
+          <button id="search-clear" class="btn-secondary btn-sm" hidden></button>
         </div>
         
         <div class="inventory-actions">
-          <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
+          <button id="btn-export-excel" class="btn-secondary"> Exportar</button>
           <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
         </div>
         <div class="table-container">
@@ -228,7 +229,7 @@
       </div>
 
       <div id="view-miembros" class="view admin-only" hidden>
-        <h2 class="view-title">👥 Miembros</h2>
+        <h2 class="view-title"> Miembros</h2>
         <form id="miembro-form" class="form-card">
           <div class="form-row">
             <div class="form-group"><label>Username *</label><input type="text" id="miembro-username" required></div>
@@ -239,7 +240,7 @@
             <div class="form-group"><label>Rol *</label><select id="miembro-rol" required><option value="miembro">Miembro</option><option value="administrador">Administrador</option></select></div>
           </div>
           <div class="form-group"><label>Área</label><input type="text" id="miembro-area"></div>
-          <button type="submit" class="btn-primary">💾 Guardar</button>
+          <button type="submit" class="btn-primary"> Guardar</button>
         </form>
         <div class="table-container mt-2">
           <table class="data-table">
@@ -253,7 +254,7 @@
         <h2 class="view-title">🔄 Préstamos</h2>
         
         <form id="prestamo-form" class="form-card">
-          <h3>📋 Nueva Solicitud de Préstamo</h3>
+          <h3> Nueva Solicitud de Préstamo</h3>
           
           <div class="form-group">
             <label>Items a Prestar *</label>
@@ -347,7 +348,7 @@
             <div class="form-group"><label>Urgencia *</label>
               <select id="reporte-urgencia" required>
                 <option value="bajo">🟢 Bajo</option>
-                <option value="medio">🟡 Medio</option>
+                <option value="medio"> Medio</option>
                 <option value="alto">🔴 Alto</option>
               </select>
             </div>
