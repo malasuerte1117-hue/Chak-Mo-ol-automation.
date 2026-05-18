@@ -1,191 +1,1073 @@
-:root {
-  --bg-primary: #0a0a0f;
-  --bg-secondary: #12121a;
-  --bg-card: #1a1a25;
-  --bg-hover: #252535;
-  --cyan-neon: #00d4ff;
-  --cyan-glow: rgba(0, 212, 255, 0.4);
-  --red-alert: #ff0040;
-  --red-glow: rgba(255, 0, 64, 0.4);
-  --gold-accent: #D4AF37;
-  --text-primary: #ffffff;
-  --text-secondary: #b0b0c0;
-  --text-muted: #6b6b80;
-  --border-color: #2a2a40;
-  --success: #00ff88;
-  --warning: #ffaa00;
-  --error: #ff0040;
-  --font-display: 'Orbitron', sans-serif;
-  --font-body: 'Roboto', sans-serif;
-  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+// CONFIGURACIÓN
+const SUPABASE_URL = 'https://wmoejlgebchqtchzopuf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtb2VqbGdlYmNocXRjaHpvcHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Njg0MjksImV4cCI6MjA5MzA0NDQyOX0.lK3BKNmCHlMIDtLWOAwsyvuWNMvIcgQvzUH0IjYZ9y4';
+
+const ADMIN_USERS = [
+  { username: 'luis', password: 'LECR1123', nombre: 'Luis Enrique Canul Rosado', rol: 'administrador', id: 1 },
+  { username: 'sixto', password: 'sixto2026', nombre: 'Sixto', rol: 'administrador', id: 2 }
+];
+
+let App = { user: null, isAdmin: false, supabase: null, inventoryData: [] };
+
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) loader.classList.add('hidden');
+  }, 500);
+  
+  if (window.supabase) {
+    App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log("✅ Supabase conectado");
+  }
+  
+  document.getElementById('login-section').style.display = 'flex';
+  document.getElementById('app-section').style.display = 'none';
+  
+  setupEvents();
+});
+
+function setupEvents() {
+  // Toggle sidebar en mobile
+  document.getElementById('menu-toggle')?.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.toggle('open');
+  });
+  
+  // Cerrar sidebar al hacer click fuera en mobile
+  document.getElementById('main-content')?.addEventListener('click', () => {
+    if (window.innerWidth < 1024) {
+      document.getElementById('sidebar')?.classList.remove('open');
+    }
+  });
+  
+  document.getElementById('login-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const u = document.getElementById('username').value.trim().toLowerCase();
+    const p = document.getElementById('password').value;
+    
+    const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
+    if (master) {
+      loginSuccess(master);
+      return;
+    }
+    
+    const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
+    if (error || !data) {
+      showToast('❌ Credenciales incorrectas', 'error');
+    } else {
+      loginSuccess(data);
+    }
+  });
+  
+  document.getElementById('logout-btn')?.addEventListener('click', () => {
+    App.user = null;
+    App.isAdmin = false;
+    document.getElementById('app-section').style.display = 'none';
+    document.getElementById('login-section').style.display = 'flex';
+    document.getElementById('sidebar')?.classList.remove('open');
+  });
+  
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const view = e.currentTarget.dataset.view;
+      if (!view) return;
+      if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) return showToast('🔐 Solo administradores', 'error');
+      
+      document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      
+      const target = document.getElementById('view-' + view);
+      if (target) { target.classList.add('active'); target.hidden = false; }
+      e.currentTarget.classList.add('active');
+      
+      // Cerrar sidebar en mobile después de seleccionar
+      if (window.innerWidth < 1024) {
+        document.getElementById('sidebar')?.classList.remove('open');
+      }
+      
+      if (view === 'dashboard') loadDashboard();
+      if (view === 'inventario') loadInventory();
+      if (view === 'bitacora') loadBitacora();
+      if (view === 'reportes') loadReportes();
+      if (view === 'miembros' && App.isAdmin) loadMembers();
+      if (view === 'prestamos' && App.isAdmin) loadPrestamos();
+    });
+  });
+  
+  // 🔍 EVENTOS PARA BÚSQUEDA EN INVENTARIO
+  const searchInput = document.getElementById('inventory-search');
+  const searchClear = document.getElementById('search-clear');
+  const searchReset = document.getElementById('search-reset');
+  const noResults = document.getElementById('inventory-no-results');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase().trim();
+      filterInventory(term);
+      
+      // Mostrar/ocultar botón de limpiar
+      if (searchClear) {
+        searchClear.hidden = term === '';
+      }
+    });
+    
+    // Permitir ESC para limpiar búsqueda
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        searchInput.value = '';
+        filterInventory('');
+        if (searchClear) searchClear.hidden = true;
+        searchInput.blur();
+      }
+    });
+  }
+  
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      if (searchInput) {
+        searchInput.value = '';
+        filterInventory('');
+        searchClear.hidden = true;
+        searchInput.focus();
+      }
+    });
+  }
+  
+  if (searchReset) {
+    searchReset.addEventListener('click', () => {
+      if (searchInput) {
+        searchInput.value = '';
+        filterInventory('');
+        if (searchClear) searchClear.hidden = true;
+        if (noResults) noResults.hidden = true;
+      }
+    });
+  }
+  
+  document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await App.supabase.from('bitacoras').insert([{
+        usuario_id: App.user.id,
+        nombre_usuario: App.user.nombre || App.user.username,
+        titulo: document.getElementById('bitacora-titulo').value,
+        actividad: document.getElementById('bitacora-actividad').value,
+        categoria: document.getElementById('bitacora-categoria').value,
+        fecha: new Date().toISOString()
+      }]);
+      if (error) throw error;
+      showToast('✅ Bitácora guardada', 'success');
+      e.target.reset();
+      loadBitacora(); loadDashboard();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  });
+  
+  document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await App.supabase.from('reportes').insert([{
+        usuario_id: App.user.id,
+        nombre_usuario: App.user.nombre || App.user.username,
+        titulo: document.getElementById('reporte-titulo').value,
+        descripcion: document.getElementById('reporte-descripcion').value,
+        categoria: document.getElementById('reporte-categoria').value,
+        urgencia: document.getElementById('reporte-urgencia').value,
+        estado: 'abierto',
+        created_at: new Date().toISOString()
+      }]);
+      if (error) throw error;
+      showToast('🚨 Reporte creado', 'success');
+      e.target.reset();
+      loadReportes(); loadDashboard();
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  });
+  
+  document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
+    const { data } = await App.supabase.from('inventario').select('*');
+    if (!data?.length) return showToast('Sin datos para exportar', 'warning');
+    
+    const headers = Object.keys(data[0]);
+    let csvContent = headers.join(',') + '\n';
+    
+    data.forEach(row => {
+      const values = headers.map(header => {
+        const val = row[header];
+        return typeof val === 'string' && val.includes(',') ? `"${val}"` : val;
+      });
+      csvContent += values.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'Inventario_' + new Date().toISOString().slice(0,10) + '.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast('📦 Exportado como CSV', 'success');
+  });
+  
+  const modal = document.getElementById('item-modal');
+  document.querySelector('.modal-close')?.addEventListener('click', () => {
+    if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+  });
+  
+  // Cerrar modal al hacer click fuera
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+  });
+  
+  document.getElementById('btn-add-item')?.addEventListener('click', () => {
+    if (!modal) return showToast('Error: Modal no encontrado', 'error');
+    document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
+    document.getElementById('item-form').reset();
+    document.getElementById('item-id').value = '';
+    document.getElementById('item-error').textContent = '';
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  });
+  
+  document.getElementById('item-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      let id = document.getElementById('item-id').value;
+      
+      const item = {
+        nombre: document.getElementById('item-nombre').value,
+        numero_serie: document.getElementById('item-serie').value || 'N/A',
+        cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
+        funciona: document.getElementById('item-funciona').value,
+        estado: document.getElementById('item-estado').value,
+        categoria: document.getElementById('item-categoria').value,
+        datasheet: document.getElementById('item-datasheet').value,
+        comentarios: document.getElementById('item-comentarios').value,
+        foto_url: document.getElementById('item-foto').value
+      };
+      
+      if (id) {
+        await App.supabase.from('inventario').update(item).eq('id', id);
+        showToast('✅ Actualizado', 'success');
+      } else {
+        const cleanName = item.nombre.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
+        id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
+        item.id = id;
+        item.created_at = new Date().toISOString();
+        
+        const { error } = await App.supabase.from('inventario').insert([item]);
+        if (error) throw error;
+        showToast('✅ Creado', 'success');
+      }
+      
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+      loadInventory();
+    } catch (err) {
+      document.getElementById('item-error').textContent = 'Error: ' + err.message;
+      showToast('Error: ' + err.message, 'error');
+    }
+  });
+  
+  document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    try {
+      const items = [];
+      const itemRows = document.querySelectorAll('.prestamo-item-row');
+      
+      for (let row of itemRows) {
+        const itemId = row.querySelector('.prestamo-item-select').value;
+        const cantidad = parseInt(row.querySelector('.prestamo-cantidad').value);
+        
+        if (itemId && cantidad > 0) {
+          const { data: itemData } = await App.supabase
+            .from('inventario')
+            .select('nombre, cantidad')
+            .eq('id', itemId)
+            .single();
+          
+          if (!itemData) {
+            throw new Error(`Item no encontrado`);
+          }
+          
+          if (cantidad > itemData.cantidad) {
+            throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}, Solicitado: ${cantidad}`);
+          }
+          
+          items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
+        }
+      }
+      
+      if (items.length === 0) {
+        throw new Error('Debes seleccionar al menos un item');
+      }
+      
+      const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
+      const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
+      const motivo = document.getElementById('prestamo-motivo').value;
+      
+      if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
+        throw new Error('La fecha de devolución debe ser posterior a la fecha de préstamo');
+      }
+      
+      const estado = App.isAdmin ? 'autorizado' : 'pendiente';
+      
+      const prestamoData = {
+        usuario_id: App.user.id,
+        nombre_solicitante: App.user.nombre_completo || App.user.username,
+        items: items,
+        fecha_prestamo: fechaInicio,
+        fecha_devolucion: fechaDevolucion,
+        motivo: motivo,
+        estado: estado,
+        autorizado_por: App.isAdmin ? App.user.id : null,
+        created_at: new Date().toISOString()
+      };
+      
+      const { data: prestamo, error } = await App.supabase
+        .from('prestamos')
+        .insert([prestamoData])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      if (App.isAdmin) {
+        for (let item of items) {
+          await App.supabase.rpc('descontar_stock', {
+            p_item_id: item.item_id,
+            p_cantidad: item.cantidad
+          });
+        }
+        showToast('✅ Préstamo autorizado y registrado', 'success');
+      } else {
+        showToast('📋 Solicitud enviada. Espera autorización del administrador', 'success');
+      }
+      
+      e.target.reset();
+      document.getElementById('prestamo-items-container').innerHTML = `
+        <div class="prestamo-item-row">
+          <select class="prestamo-item-select" required>
+            <option value="">Seleccionar item...</option>
+          </select>
+          <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+          <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
+        </div>
+      `;
+      loadPrestamos();
+      loadDashboard();
+      
+    } catch (err) {
+      document.getElementById('prestamo-error').textContent = err.message;
+      showToast('Error: ' + err.message, 'error');
+    }
+  });
+  
+  document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      const { error } = await App.supabase.from('usuarios').insert([{
+        username: document.getElementById('miembro-username').value.trim(),
+        password: document.getElementById('miembro-password').value,
+        nombre_completo: document.getElementById('miembro-nombre').value.trim(),
+        rol: document.getElementById('miembro-rol').value,
+        area: document.getElementById('miembro-area').value.trim(),
+        created_at: new Date().toISOString()
+      }]);
+      if (error) throw error;
+      showToast('✅ Miembro creado', 'success');
+      e.target.reset();
+      loadMembers();
+    } catch (err) {
+      showToast('Error Miembros: ' + err.message, 'error');
+    }
+  });
 }
 
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: var(--font-body); background: var(--bg-primary); color: var(--text-primary); line-height: 1.6; min-height: 100vh; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
-
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes slide-up { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes slide-right { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
-
-.loading-overlay { position: fixed; inset: 0; background: var(--bg-primary); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
-.loading-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-.loader { width: 70px; height: 70px; border: 4px solid var(--border-color); border-top-color: var(--cyan-neon); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 24px; box-shadow: 0 0 20px var(--cyan-glow); }
-.loading-overlay p { color: var(--text-secondary); font-size: 0.95rem; letter-spacing: 1px; font-family: var(--font-display); }
-
-.auth-section { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: radial-gradient(ellipse at 20% 20%, rgba(0,212,255,0.08) 0%, transparent 45%); }
-.auth-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 40px 32px; width: 100%; max-width: 480px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); animation: slide-up 0.5s ease; }
-.auth-header { text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border-color); }
-.logo-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 900; color: var(--cyan-neon); text-shadow: 0 0 15px var(--cyan-glow); letter-spacing: 3px; margin-bottom: 8px; }
-.slogan-main { color: var(--gold-accent); font-size: 1rem; font-weight: 500; letter-spacing: 2px; }
-.slogan-sub { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; font-style: italic; }
-
-.auth-form, .form-card { display: flex; flex-direction: column; gap: 20px; }
-.form-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; }
-.form-group { display: flex; flex-direction: column; gap: 8px; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-label { font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; }
-input, select, textarea { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 16px; color: var(--text-primary); font-size: 1rem; font-family: inherit; transition: var(--transition); width: 100%; }
-textarea { min-height: 100px; resize: vertical; }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--cyan-neon); box-shadow: 0 0 0 3px var(--cyan-glow); background: var(--bg-hover); }
-.error-message { color: var(--red-alert); font-size: 0.85rem; min-height: 20px; font-weight: 500; }
-
-.btn-primary, .btn-secondary { padding: 14px 28px; border: none; border-radius: var(--radius-sm); font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition); display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-family: inherit; }
-.btn-primary { background: linear-gradient(135deg, var(--cyan-neon), #00a3cc); color: #000; box-shadow: 0 4px 20px var(--cyan-glow); }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px var(--cyan-glow); }
-.btn-secondary { background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border-color); }
-.btn-secondary:hover { background: var(--bg-hover); border-color: var(--cyan-neon); color: var(--cyan-neon); }
-.btn-full { width: 100%; }
-.btn-sm { padding: 8px 16px; font-size: 0.85rem; }
-
-.main-header { position: sticky; top: 0; background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; backdrop-filter: blur(12px); }
-.header-left { display: flex; align-items: center; gap: 16px; }
-.menu-btn { background: none; border: none; color: var(--text-primary); font-size: 1.6rem; cursor: pointer; padding: 8px 12px; border-radius: var(--radius-sm); }
-.menu-btn:hover { background: var(--bg-hover); color: var(--cyan-neon); }
-.brand h2 { font-family: var(--font-display); color: var(--cyan-neon); font-size: 1.2rem; }
-.brand .badge { background: linear-gradient(135deg, var(--gold-accent), #b8962e); color: #000; font-size: 0.65rem; padding: 3px 10px; border-radius: 20px; margin-left: 8px; }
-.brand .tagline { font-size: 0.7rem; color: var(--text-muted); }
-.header-right { display: flex; align-items: center; gap: 14px; }
-.user-info { display: flex; align-items: center; gap: 10px; }
-.role-badge { padding: 4px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border: 1px solid var(--border-color); }
-.role-badge.admin { background: linear-gradient(135deg, var(--red-alert), #cc0033); color: #fff; border: none; box-shadow: 0 0 12px var(--red-glow); }
-
-.sidebar { position: fixed; left: -300px; top: 73px; width: 280px; height: calc(100vh - 73px); background: var(--bg-card); border-right: 1px solid var(--border-color); padding: 16px 0; transition: var(--transition); z-index: 90; display: flex; flex-direction: column; overflow-y: auto; }
-.sidebar.open { left: 0; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
-.nav-menu { flex: 1; display: flex; flex-direction: column; gap: 6px; padding: 0 12px; }
-.nav-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: none; border: none; color: var(--text-secondary); text-align: left; border-radius: var(--radius-md); cursor: pointer; transition: var(--transition); font-size: 0.95rem; }
-.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); transform: translateX(4px); }
-.nav-item.active { background: linear-gradient(135deg, rgba(0,212,255,0.12), transparent); color: var(--cyan-neon); border-left: 3px solid var(--cyan-neon); font-weight: 600; }
-.sidebar-footer { padding: 20px 24px; border-top: 1px solid var(--border-color); text-align: center; }
-.eslogan-small { color: var(--gold-accent); font-size: 0.75rem; font-style: italic; letter-spacing: 1px; }
-
-.main-content { margin-left: 0; padding: 24px; }
-
-/* === 📱 RESPONSIVE MOBILE === */
-@media (max-width: 1023px) {
-  .sidebar { left: -300px; }
-  .sidebar.open { left: 0; }
-  .main-content { margin-left: 0; padding: 16px; }
-  .menu-btn { display: block; }
+function loginSuccess(user) {
+  App.user = user;
+  App.isAdmin = user.rol === 'administrador';
   
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .activity-grid { grid-template-columns: 1fr; }
-  .form-row { grid-template-columns: 1fr; }
+  document.getElementById('login-section').style.display = 'none';
+  document.getElementById('app-section').style.display = 'block';
+  document.getElementById('user-display').textContent = user.nombre?.split(' ')[0] || user.username;
   
-  .data-table { min-width: 900px; font-size: 0.85rem; }
-  .data-table th, .data-table td { padding: 10px 12px; }
+  const badge = document.getElementById('role-badge');
+  badge.textContent = user.rol;
+  badge.className = App.isAdmin ? 'role-badge admin' : 'role-badge';
   
-  .reportes-grid { grid-template-columns: 1fr; }
+  updateAdminUI();
+  loadDashboard();
   
-  .modal-content { padding: 24px 20px; margin: 10px; }
-  
-  .btn-primary, .btn-secondary { padding: 12px 20px; font-size: 0.95rem; }
+  document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
+  const dashboard = document.getElementById('view-dashboard');
+  if (dashboard) { dashboard.classList.add('active'); dashboard.hidden = false; }
 }
 
-@media (min-width: 1024px) { 
-  .sidebar { left: 0; } 
-  .main-content { margin-left: 280px; } 
-  .menu-btn { display: none; } 
+function updateAdminUI() {
+  document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
 }
 
-.view { display: none; animation: slide-up 0.4s ease; }
-.view.active { display: block; }
-.view-title { font-family: var(--font-display); font-size: 1.6rem; color: var(--cyan-neon); margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color); }
-
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
-.stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; display: flex; align-items: center; gap: 16px; transition: var(--transition); }
-.stat-card:hover { border-color: var(--cyan-neon); transform: translateY(-4px); box-shadow: 0 0 25px var(--cyan-glow); }
-.stat-icon { font-size: 2rem; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center; background: rgba(0,212,255,0.12); border-radius: var(--radius-sm); }
-.stat-value { font-family: var(--font-display); font-size: 1.9rem; font-weight: 700; }
-.stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
-
-.dashboard-activity { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 24px; margin-bottom: 32px; }
-.dashboard-activity h3 { margin-bottom: 20px; color: var(--text-secondary); font-family: var(--font-display); }
-.activity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.activity-column h4 { color: var(--cyan-neon); margin-bottom: 12px; font-size: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
-.activity-list { list-style: none; max-height: 300px; overflow-y: auto; }
-.activity-item { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--cyan-neon); font-size: 0.9rem; }
-.activity-item .time { color: var(--text-muted); font-size: 0.8rem; display: block; margin-bottom: 4px; }
-
-.inventory-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
-.btn-import { cursor: pointer; position: relative; }
-
-/* 🔍 ESTILOS PARA BUSCADOR */
-.search-container { margin-bottom: 16px; }
-.search-input { 
-  background: var(--bg-secondary); 
-  border: 1px solid var(--border-color); 
-  border-radius: var(--radius-sm); 
-  padding: 12px 16px; 
-  color: var(--text-primary); 
-  width: 100%; 
-  font-size: 1rem; 
-  transition: var(--transition); 
+// === DASHBOARD - SIN MODIFICACIONES ===
+async function loadDashboard() {
+  if (!App.supabase) return;
+  
+  const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
+  const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
+  const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+  
+  document.getElementById('stat-inventory').textContent = inv || 0;
+  document.getElementById('stat-members').textContent = mem || 0;
+  document.getElementById('stat-reports').textContent = rep || 0;
+  
+  try {
+    const { data: bits, error: bitError } = await App.supabase
+      .from('bitacoras')
+      .select('*')
+      .order('fecha', { ascending: false })
+      .limit(5);
+    
+    if (bitError) throw bitError;
+    
+    const bitList = document.getElementById('dashboard-bitacora-list');
+    if (bitList) {
+      if (bits && bits.length > 0) {
+        bitList.innerHTML = bits.map(b => 
+          `<li class="activity-item">
+            <span class="time">${new Date(b.fecha).toLocaleString()}</span>
+            <strong>${b.titulo || 'Sin título'}</strong>
+            <small style="color:#666;display:block;margin-top:4px">${b.actividad?.substring(0,60) || ''}${b.actividad?.length > 60 ? '...' : ''}</small>
+          </li>`
+        ).join('');
+      } else {
+        bitList.innerHTML = '<li class="text-muted">Sin registros de bitácora</li>';
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error cargando bitácoras:", err);
+    const bitList = document.getElementById('dashboard-bitacora-list');
+    if (bitList) bitList.innerHTML = '<li class="text-muted">Error al cargar</li>';
+  }
+  
+  try {
+    const { data: reps, error: repError } = await App.supabase
+      .from('reportes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    if (repError) throw repError;
+    
+    const repList = document.getElementById('dashboard-reportes-list');
+    if (repList) {
+      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
+      
+      if (reps && reps.length > 0) {
+        repList.innerHTML = reps.map(r => 
+          `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}">
+            <span class="time">${new Date(r.created_at).toLocaleString()}</span>
+            <strong style="color:${colors[r.urgencia] || '#00d4ff'}">[${(r.urgencia || 'N/A').toUpperCase()}]</strong>
+            <span style="color:#333"> ${r.titulo || 'Sin título'}</span>
+            ${r.estado === 'cerrado' ? '<small style="color:#28a745;margin-left:8px">✓ Cerrado</small>' : ''}
+          </li>`
+        ).join('');
+      } else {
+        repList.innerHTML = '<li class="text-muted">Sin reportes recientes</li>';
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error cargando reportes:", err);
+    const repList = document.getElementById('dashboard-reportes-list');
+    if (repList) repList.innerHTML = '<li class="text-muted">Error al cargar</li>';
+  }
+  
+  try {
+    const { count: loans } = await App.supabase
+      .from('prestamos')
+      .select('*', { count: 'exact', head: true })
+      .in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
+    document.getElementById('stat-loans').textContent = loans || 0;
+    
+    const { data: prestamos } = await App.supabase
+      .from('prestamos')
+      .select('*')
+      .eq('estado', 'autorizado')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    const prestamosList = document.getElementById('dashboard-prestamos-list');
+    if (prestamosList) {
+      if (prestamos && prestamos.length > 0) {
+        prestamosList.innerHTML = prestamos.map(p => {
+          const itemsText = p.items?.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') || 'Sin items';
+          return `
+            <li class="activity-item">
+              <span class="time">${new Date(p.fecha_prestamo).toLocaleDateString()}</span>
+              <strong>📤 ${p.nombre_solicitante}</strong>
+              <small style="color:#666;display:block;margin-top:4px">${itemsText}</small>
+              <small style="color:#00cc66">Devolución: ${new Date(p.fecha_devolucion).toLocaleDateString()}</small>
+            </li>`;
+        }).join('');
+      } else {
+        prestamosList.innerHTML = '<li class="text-muted">Sin préstamos activos</li>';
+      }
+    }
+  } catch (err) {
+    console.error("Error cargando préstamos:", err);
+  }
+  
+  try {
+    const { data: devoluciones } = await App.supabase
+      .from('prestamos')
+      .select('*')
+      .eq('estado', 'devuelto')
+      .order('fecha_confirmacion', { ascending: false })
+      .limit(5);
+    
+    const devolucionesList = document.getElementById('dashboard-devoluciones-list');
+    if (devolucionesList) {
+      if (devoluciones && devoluciones.length > 0) {
+        devolucionesList.innerHTML = devoluciones.map(d => {
+          const itemsText = d.items?.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') || 'Sin items';
+          return `
+            <li class="activity-item">
+              <span class="time">${new Date(d.fecha_confirmacion).toLocaleDateString()}</span>
+              <strong>📥 ${d.nombre_solicitante}</strong>
+              <small style="color:#666;display:block;margin-top:4px">${itemsText}</small>
+              <small style="color:#28a745">✓ Devuelto</small>
+            </li>`;
+        }).join('');
+      } else {
+        devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones recientes</li>';
+      }
+    }
+  } catch (err) {
+    console.error("Error cargando devoluciones:", err);
+  }
 }
-.search-input:focus { 
-  outline: none; 
-  border-color: var(--cyan-neon); 
-  box-shadow: 0 0 0 3px var(--cyan-glow); 
+
+async function loadBitacora() {
+  try {
+    const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
+    const tbody = document.getElementById('bitacora-body');
+    if (!tbody) return;
+    
+    if (data && data.length > 0) {
+      tbody.innerHTML = data.map(b => `
+        <tr>
+          <td>${new Date(b.fecha).toLocaleString()}</td>
+          <td>${b.nombre_usuario}</td>
+          <td>${b.titulo}</td>
+          <td>${b.categoria}</td>
+          <td>${b.actividad}</td>
+          <td>${App.isAdmin ? `<button class="btn-sm" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
+    }
+  } catch (err) {
+    console.error("Error loadBitacora:", err);
+  }
 }
-.search-input::placeholder { color: var(--text-muted); }
 
-.table-container { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow-x: auto; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 1100px; }
-.data-table th { background: var(--bg-secondary); padding: 14px 16px; text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid var(--border-color); font-size: 0.85rem; text-transform: uppercase; }
-.data-table td { padding: 14px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
-.data-table tr:hover { background: var(--bg-hover); }
-.data-table code { background: var(--bg-secondary); padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; color: var(--cyan-neon); }
-.data-table a { color: var(--cyan-neon); text-decoration: none; }
+async function loadReportes() {
+  try {
+    const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
+    const container = document.getElementById('reportes-list');
+    if (!container) return;
+    
+    const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
+    
+    if (data && data.length > 0) {
+      container.innerHTML = data.map(r => `
+        <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
+          <div class="report-header">
+            <span class="report-urgencia" style="background:${colors[r.urgencia]}">${r.urgencia.toUpperCase()}</span>
+            <span class="status status-${r.estado}">${r.estado}</span>
+          </div>
+          <h4>${r.titulo}</h4>
+          <p>${r.descripcion}</p>
+          <div class="report-meta">
+            <span>👤 ${r.nombre_usuario}</span>
+            <span>📁 ${r.categoria}</span>
+          </div>
+          ${App.isAdmin && r.estado !== 'cerrado' ? 
+            `<div class="report-actions"><button class="btn-primary btn-sm" onclick="closeReport('${r.id}')">✅ Cerrar</button></div>` : ''}
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<p>Sin reportes</p>';
+    }
+  } catch (err) {
+    console.error("Error loadReportes:", err);
+  }
+}
 
-.status { padding: 5px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; display: inline-block; }
-.status-si, .status-disponible { background: rgba(0,255,136,0.15); color: var(--success); }
-.status-no, .status-dañado { background: rgba(255,0,64,0.15); color: var(--red-alert); }
-.status-desconocido { background: rgba(255,170,0,0.15); color: var(--warning); }
-.status-prestado { background: rgba(255,170,0,0.15); color: var(--warning); }
-.status-mantenimiento { background: rgba(0,212,255,0.15); color: var(--cyan-neon); }
+// 🔍 FUNCIÓN DE FILTRADO PARA INVENTARIO
+function filterInventory(searchTerm) {
+  const tbody = document.getElementById('inventory-body');
+  const noResults = document.getElementById('inventory-no-results');
+  if (!tbody) return;
+  
+  if (!searchTerm || searchTerm.trim() === '') {
+    // Mostrar todos los items originales
+    renderInventoryTable(App.inventoryData);
+    if (noResults) noResults.hidden = true;
+    return;
+  }
+  
+  const term = searchTerm.toLowerCase();
+  const filtered = App.inventoryData.filter(item => {
+    const nombre = (item.nombre || '').toLowerCase();
+    const serie = (item.numero_serie || '').toLowerCase();
+    const categoria = (item.categoria || '').toLowerCase();
+    const comentarios = (item.comentarios || '').toLowerCase();
+    
+    return nombre.includes(term) || 
+           serie.includes(term) || 
+           categoria.includes(term) || 
+           comentarios.includes(term);
+  });
+  
+  if (filtered.length > 0) {
+    renderInventoryTable(filtered);
+    if (noResults) noResults.hidden = true;
+  } else {
+    tbody.innerHTML = '';
+    if (noResults) noResults.hidden = false;
+  }
+}
 
-.modal { position: fixed; inset: 0; background: rgba(10,10,15,0.95); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
-.modal.active { display: flex; }
-.modal-content { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 32px; width: 100%; max-width: 650px; max-height: 92vh; overflow-y: auto; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.6); animation: slide-up 0.35s ease; }
-.modal-close { position: absolute; top: 18px; right: 22px; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); background: none; border: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: var(--transition); }
-.modal-close:hover { color: var(--red-alert); background: rgba(255,0,64,0.1); }
+// Función auxiliar para renderizar la tabla (reutiliza lógica original)
+function renderInventoryTable(data) {
+  const tbody = document.getElementById('inventory-body');
+  if (!tbody) return;
+  
+  if (data && data.length > 0) {
+    tbody.innerHTML = data.map(i => `
+      <tr>
+        <td><code>${i.id}</code></td>
+        <td>${i.nombre}</td>
+        <td>${i.numero_serie || 'N/A'}</td>
+        <td>${i.cantidad}</td>
+        <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
+        <td><span class="status status-${i.estado}">${i.estado}</span></td>
+        <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄 Ver</a>` : '-'}</td>
+        <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬 Ver</button>` : '-'}</td>
+        <td>
+          <button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>
+          ${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } else {
+    tbody.innerHTML = '<tr><td colspan="10">Sin registros</td></tr>';
+  }
+}
 
-.toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid var(--cyan-neon); border-radius: var(--radius-sm); padding: 14px 20px; min-width: 280px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slide-right 0.3s ease; z-index: 2000; }
-.toast.success { border-left-color: var(--success); }
-.toast.error { border-left-color: var(--red-alert); }
-.toast.warning { border-left-color: var(--warning); }
+async function loadInventory() {
+  try {
+    const { data } = await App.supabase.from('inventario').select('*');
+    App.inventoryData = data || []; // Guardar para filtrado local
+    
+    // Resetear búsqueda al cargar inventario
+    const searchInput = document.getElementById('inventory-search');
+    const searchClear = document.getElementById('search-clear');
+    const noResults = document.getElementById('inventory-no-results');
+    
+    if (searchInput) {
+      searchInput.value = '';
+      if (searchClear) searchClear.hidden = true;
+      if (noResults) noResults.hidden = true;
+    }
+    
+    renderInventoryTable(App.inventoryData);
+  } catch (err) {
+    console.error("Error loadInventory:", err);
+    const tbody = document.getElementById('inventory-body');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10">Error al cargar</td></tr>';
+  }
+}
 
-.reportes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-top: 20px; }
-.report-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 20px; border-left: 4px solid var(--cyan-neon); transition: var(--transition); }
-.report-card.closed { opacity: 0.5; border-left-color: var(--text-muted); }
-.report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
-.report-urgencia { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: #000; text-transform: uppercase; }
-.report-urgencia.alto { background: var(--red-alert); color: #fff; }
-.report-urgencia.medio { background: var(--warning); }
-.report-urgencia.bajo { background: var(--success); }
+async function loadMembers() {
+  try {
+    const { data } = await App.supabase.from('usuarios').select('*').order('username');
+    const tbody = document.getElementById('miembros-body');
+    if (!tbody) return;
+    
+    if (data && data.length > 0) {
+      tbody.innerHTML = data.map(m => `
+        <tr>
+          <td>${m.id}</td>
+          <td>@${m.username}</td>
+          <td>${m.nombre_completo || '-'}</td>
+          <td><span class="role-badge ${m.rol === 'administrador' ? 'admin' : ''}">${m.rol}</span></td>
+          <td>${m.area || '-'}</td>
+          <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? 
+            `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : '🔒'}</td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
+    }
+  } catch (err) {
+    console.error("Error loadMembers:", err);
+  }
+}
 
-.mt-2 { margin-top: 16px; }
-.hidden { display: none !important; }
-.no-results { text-align: center; padding: 20px; color: var(--text-muted); }
+window.addPrestamoItem = async function() {
+  const container = document.getElementById('prestamo-items-container');
+  const newRow = document.createElement('div');
+  newRow.className = 'prestamo-item-row';
+  newRow.innerHTML = `
+    <select class="prestamo-item-select" required>
+      <option value="">Cargando...</option>
+    </select>
+    <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+    <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
+  `;
+  container.appendChild(newRow);
+  
+  await loadPrestamoItems(newRow.querySelector('.prestamo-item-select'));
+};
+
+window.removePrestamoItem = function(btn) {
+  const rows = document.querySelectorAll('.prestamo-item-row');
+  if (rows.length > 1) {
+    btn.parentElement.remove();
+  } else {
+    showToast('Debe haber al menos un item', 'warning');
+  }
+};
+
+async function loadPrestamoItems(selectElement) {
+  try {
+    const { data } = await App.supabase
+      .from('inventario')
+      .select('id, nombre, cantidad')
+      .gt('cantidad', 0);
+    
+    if (data && data.length > 0) {
+      selectElement.innerHTML = '<option value="">Seleccionar item...</option>' + 
+        data.map(item => `<option value="${item.id}" data-stock="${item.cantidad}">${item.nombre} (Disp: ${item.cantidad})</option>`).join('');
+    } else {
+      selectElement.innerHTML = '<option value="">Sin items disponibles</option>';
+    }
+  } catch (err) {
+    console.error("Error cargando items:", err);
+    selectElement.innerHTML = '<option value="">Error al cargar</option>';
+  }
+}
+
+window.authorizeLoan = async function(loanId, authorize) {
+  if (!confirm(`${authorize ? 'AUTORIZAR' : 'DENEGAR'} este préstamo?`)) return;
+  
+  try {
+    if (authorize) {
+      const { data: prestamo } = await App.supabase
+        .from('prestamos')
+        .select('items')
+        .eq('id', loanId)
+        .single();
+      
+      for (let item of prestamo.items) {
+        await App.supabase.rpc('descontar_stock', {
+          p_item_id: item.item_id,
+          p_cantidad: item.cantidad
+        });
+      }
+      
+      await App.supabase.from('prestamos').update({
+        estado: 'autorizado',
+        autorizado_por: App.user.id,
+        fecha_autorizacion: new Date().toISOString()
+      }).eq('id', loanId);
+      
+      showToast('✅ Préstamo autorizado', 'success');
+    } else {
+      await App.supabase.from('prestamos').update({
+        estado: 'denegado',
+        autorizado_por: App.user.id,
+        fecha_autorizacion: new Date().toISOString()
+      }).eq('id', loanId);
+      
+      showToast('❌ Préstamo denegado', 'success');
+    }
+    
+    loadPrestamos();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.requestReturn = async function(loanId) {
+  if (!confirm('¿Solicitar devolución de este préstamo?')) return;
+  
+  try {
+    await App.supabase.from('prestamos').update({
+      estado: 'devolucion_pendiente',
+      fecha_devolucion_real: new Date().toISOString()
+    }).eq('id', loanId);
+    
+    showToast('📋 Devolución solicitada. Espera confirmación del administrador', 'success');
+    loadPrestamos();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.confirmReturn = async function(loanId) {
+  if (!confirm('¿Confirmar que los items fueron devueltos en buen estado?')) return;
+  
+  try {
+    const { data: prestamo } = await App.supabase
+      .from('prestamos')
+      .select('items')
+      .eq('id', loanId)
+      .single();
+    
+    for (let item of prestamo.items) {
+      await App.supabase.rpc('regresar_stock', {
+        p_item_id: item.item_id,
+        p_cantidad: item.cantidad
+      });
+    }
+    
+    await App.supabase.from('prestamos').update({
+      estado: 'devuelto',
+      confirmado_por: App.user.id,
+      fecha_confirmacion: new Date().toISOString()
+    }).eq('id', loanId);
+    
+    showToast('✅ Devolución confirmada', 'success');
+    loadPrestamos();
+    loadInventory();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+async function loadPrestamos() {
+  try {
+    console.log("🔄 Cargando préstamos...");
+    
+    const itemSelects = document.querySelectorAll('.prestamo-item-select');
+    for (let select of itemSelects) {
+      await loadPrestamoItems(select);
+    }
+    
+    let query;
+    if (App.isAdmin) {
+      query = App.supabase.from('prestamos').select('*');
+    } else {
+      query = App.supabase.from('prestamos').select('*').eq('usuario_id', App.user.id);
+    }
+    
+    const { data } = await query.order('created_at', { ascending: false });
+    
+    const tbody = document.getElementById('prestamos-body');
+    const pendientesBody = document.getElementById('prestamos-pendientes-body');
+    const pendientesSection = document.getElementById('prestamos-pendientes-section');
+    
+    if (tbody) {
+      if (data && data.length > 0) {
+        const misPrestamos = data.filter(p => 
+          App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente'
+        );
+        
+        tbody.innerHTML = misPrestamos.map(l => {
+          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+          let acciones = '';
+          
+          if (l.estado === 'autorizado') {
+            acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
+          } else if (l.estado === 'devolucion_pendiente') {
+            acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
+          }
+          
+          return `
+            <tr>
+              <td><code>${l.id}</code></td>
+              <td>${itemsList}</td>
+              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+              <td><span class="status status-${l.estado}">${l.estado}</span></td>
+              <td>${acciones}</td>
+            </tr>
+          `;
+        }).join('');
+        
+        if (misPrestamos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
+        }
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
+      }
+    }
+    
+    if (App.isAdmin && pendientesBody && pendientesSection) {
+      const pendientes = data.filter(p => p.estado === 'pendiente');
+      
+      if (pendientes.length > 0) {
+        pendientesSection.hidden = false;
+        pendientesBody.innerHTML = pendientes.map(l => {
+          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+          return `
+            <tr>
+              <td><code>${l.id}</code></td>
+              <td>${l.nombre_solicitante}</td>
+              <td>${itemsList}</td>
+              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+              <td>
+                <button class="btn-sm btn-success" onclick="authorizeLoan('${l.id}', true)">✅ Autorizar</button>
+                <button class="btn-sm btn-danger" onclick="authorizeLoan('${l.id}', false)">❌ Denegar</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        pendientesSection.hidden = true;
+      }
+    }
+    
+    if (App.isAdmin && tbody) {
+      const devolucionesPendientes = data.filter(p => p.estado === 'devolucion_pendiente');
+      
+      devolucionesPendientes.forEach(l => {
+        const row = document.createElement('tr');
+        const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+        row.innerHTML = `
+          <td><code>${l.id}</code></td>
+          <td>${itemsList}</td>
+          <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+          <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+          <td><span class="status status-devolucion_pendiente">⏳ Devolución Pendiente</span></td>
+          <td><button class="btn-sm btn-success" onclick="confirmReturn('${l.id}')">✅ Confirmar Devolución</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+    
+  } catch (err) {
+    console.error("Error loadPrestamos:", err);
+  }
+}
+
+window.editItem = async function(id) {
+  console.log("✏️ Editando ID:", id);
+  
+  if (!id) {
+    return showToast('Error: ID no válido', 'error');
+  }
+  
+  try {
+    const { data: item, error } = await App.supabase
+      .from('inventario')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error || !item) {
+      console.error("❌ Error al buscar:", error);
+      return showToast('Item no encontrado', 'error');
+    }
+    
+    const modal = document.getElementById('item-modal');
+    if (!modal) return showToast('Modal no encontrado', 'error');
+    
+    document.getElementById('modal-title').textContent = '✏️ Editar: ' + item.nombre;
+    document.getElementById('item-id').value = item.id;
+    document.getElementById('item-nombre').value = item.nombre || '';
+    document.getElementById('item-serie').value = item.numero_serie || '';
+    document.getElementById('item-cantidad').value = item.cantidad || 1;
+    document.getElementById('item-funciona').value = item.funciona || 'desconocido';
+    document.getElementById('item-estado').value = item.estado || 'disponible';
+    document.getElementById('item-categoria').value = item.categoria || 'otros';
+    document.getElementById('item-datasheet').value = item.datasheet || '';
+    document.getElementById('item-comentarios').value = item.comentarios || '';
+    document.getElementById('item-foto').value = item.foto_url || '';
+    document.getElementById('item-error').textContent = '';
+    
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    console.log("✅ Modal abierto");
+  } catch (err) {
+    console.error("Error editItem:", err);
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.viewComments = function(txt) {
+  if (txt && txt.trim()) alert('📝 COMENTARIOS:\n\n' + txt);
+  else showToast('Sin comentarios', 'info');
+};
+
+window.deleteItem = async function(id) {
+  if (!confirm('¿Eliminar?')) return;
+  try {
+    const { error } = await App.supabase.from('inventario').delete().eq('id', id);
+    if (error) throw error;
+    showToast('🗑️ Eliminado', 'success');
+    loadInventory(); // Recargar para actualizar búsqueda
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.deleteBitacora = async function(id) {
+  if (!confirm('¿Eliminar?')) return;
+  try {
+    await App.supabase.from('bitacoras').delete().eq('id', id);
+    showToast('🗑️ Eliminado', 'success');
+    loadBitacora();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.deleteMember = async function(username) {
+  if (!confirm(`¿Eliminar a ${username}?`)) return;
+  if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
+  try {
+    await App.supabase.from('usuarios').delete().eq('username', username);
+    showToast('🗑️ Eliminado', 'success');
+    loadMembers();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.closeReport = async function(id) {
+  try {
+    await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
+    showToast('✅ Cerrado', 'success');
+    loadReportes();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+function inferCategory(n) {
+  n = n.toLowerCase();
+  if (n.includes('sensor')) return 'sensores';
+  if (n.includes('plc') || n.includes('variador') || n.includes('fuente') || n.includes('interruptor') || n.includes('switch')) return 'electronica';
+  if (n.includes('piston') || n.includes('cilindro') || n.includes('neumatico')) return 'mecanica';
+  if (n.includes('guante') || n.includes('cable') || n.includes('herramienta')) return 'herramientas';
+  return 'otros';
+}
+
+function showToast(msg, type = 'info') {
+  const d = document.createElement('div');
+  d.className = `toast ${type}`;
+  d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 3000);
+}
