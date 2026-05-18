@@ -8,11 +8,12 @@ const ADMIN_USERS = [
 ];
 
 let App = { user: null, isAdmin: false, supabase: null };
+let inventoryCache = []; // 🔍 Cache para búsqueda
 
 window.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     const loader = document.getElementById('loading-overlay');
-    if (loader) loader.classList.add('hidden');
+    if (loader) loader.style.display = 'none';
   }, 500);
   
   if (window.supabase) {
@@ -27,9 +28,13 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupEvents() {
+  // === 📱 MENÚ HAMBURGUESA PARA MÓVIL ===
   const menuToggle = document.getElementById('menu-toggle');
   const sidebar = document.getElementById('sidebar');
-  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  const sidebarOverlay = document.createElement('div');
+  sidebarOverlay.id = 'sidebar-overlay';
+  sidebarOverlay.className = 'sidebar-overlay';
+  document.body.appendChild(sidebarOverlay);
   
   function toggleSidebar() {
     sidebar.classList.toggle('open');
@@ -50,16 +55,16 @@ function setupEvents() {
     });
   }
   
-  if (sidebarOverlay) {
-    sidebarOverlay.addEventListener('click', closeSidebar);
-  }
+  sidebarOverlay.addEventListener('click', closeSidebar);
   
-  window.addEventListener('scroll', () => {
-    if (window.innerWidth < 1024 && sidebar.classList.contains('open')) {
-      closeSidebar();
-    }
+  // Cerrar sidebar al cambiar de vista en móvil
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (window.innerWidth < 1024) closeSidebar();
+    });
   });
-
+  
+  // === LOGIN ===
   document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const u = document.getElementById('username').value.trim().toLowerCase();
@@ -68,11 +73,6 @@ function setupEvents() {
     const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
     if (master) {
       loginSuccess(master);
-      return;
-    }
-    
-    if (!App.supabase) {
-      showToast('❌ Error de conexión', 'error');
       return;
     }
     
@@ -89,29 +89,20 @@ function setupEvents() {
     App.isAdmin = false;
     document.getElementById('app-section').style.display = 'none';
     document.getElementById('login-section').style.display = 'flex';
-    closeSidebar();
   });
   
+  // === NAVEGACIÓN ===
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const view = e.currentTarget.dataset.view;
       if (!view) return;
-      if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) {
-        showToast('🔐 Solo administradores', 'error');
-        return;
-      }
+      if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) return showToast('🔐 Solo administradores', 'error');
       
-      document.querySelectorAll('.view').forEach(v => { 
-        v.classList.remove('active'); 
-        v.hidden = true; 
-      });
+      document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
       
       const target = document.getElementById('view-' + view);
-      if (target) { 
-        target.classList.add('active'); 
-        target.hidden = false; 
-      }
+      if (target) { target.classList.add('active'); target.hidden = false; }
       e.currentTarget.classList.add('active');
       
       if (view === 'dashboard') loadDashboard();
@@ -120,16 +111,12 @@ function setupEvents() {
       if (view === 'reportes') loadReportes();
       if (view === 'miembros' && App.isAdmin) loadMembers();
       if (view === 'prestamos' && App.isAdmin) loadPrestamos();
-      
-      if (window.innerWidth < 1024) {
-        closeSidebar();
-      }
     });
   });
   
+  // === BITÁCORA ===
   document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     try {
       const { error } = await App.supabase.from('bitacoras').insert([{
         usuario_id: App.user.id,
@@ -146,9 +133,9 @@ function setupEvents() {
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
   
+  // === REPORTES ===
   document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     try {
       const { error } = await App.supabase.from('reportes').insert([{
         usuario_id: App.user.id,
@@ -167,8 +154,8 @@ function setupEvents() {
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
   
+  // === EXPORTAR ===
   document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     const { data } = await App.supabase.from('inventario').select('*');
     if (!data?.length) return showToast('Sin datos para exportar', 'warning');
     
@@ -196,25 +183,11 @@ function setupEvents() {
     showToast('📦 Exportado como CSV', 'success');
   });
   
+  // === MODAL INVENTARIO ===
   const modal = document.getElementById('item-modal');
-  const modalClose = document.querySelector('.modal-close');
-  
-  function closeModal() {
-    if (modal) { 
-      modal.classList.remove('active'); 
-      modal.classList.add('hidden'); 
-    }
-  }
-  
-  if (modalClose) {
-    modalClose.addEventListener('click', closeModal);
-  }
-  
-  if (modal) {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-  }
+  document.querySelector('.modal-close')?.addEventListener('click', () => {
+    if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+  });
   
   document.getElementById('btn-add-item')?.addEventListener('click', () => {
     if (!modal) return showToast('Error: Modal no encontrado', 'error');
@@ -223,78 +196,51 @@ function setupEvents() {
     document.getElementById('item-id').value = '';
     document.getElementById('item-error').textContent = '';
     modal.classList.remove('hidden');
-    modal.classList.add('active');
+    modal.style.display = 'flex';
   });
   
   document.getElementById('item-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-    
     try {
       let id = document.getElementById('item-id').value;
       
-      const nombre = document.getElementById('item-nombre').value.trim();
-      const serie = document.getElementById('item-serie')?.value?.trim() || 'N/A';
-      const cantidad = parseInt(document.getElementById('item-cantidad').value) || 1;
-      const funciona = document.getElementById('item-funciona')?.value || 'desconocido';
-      const estado = document.getElementById('item-estado')?.value || 'disponible';
-      const datasheet = document.getElementById('item-datasheet')?.value?.trim() || '';
-      const comentarios = document.getElementById('item-comentarios')?.value?.trim() || '';
-      
-      if (!nombre) {
-        showToast('❌ El nombre es obligatorio', 'error');
-        return;
-      }
-      
       const item = {
-        nombre: nombre,
-        numero_serie: serie,
-        cantidad: cantidad,
-        funciona: funciona,
-        estado: estado,
-        categoria: inferCategory(nombre),
-        datasheet: datasheet,
-        comentarios: comentarios
+        nombre: document.getElementById('item-nombre').value,
+        numero_serie: document.getElementById('item-serie').value || 'N/A',
+        cantidad: parseInt(document.getElementById('item-cantidad').value) || 1,
+        funciona: document.getElementById('item-funciona').value,
+        estado: document.getElementById('item-estado').value,
+        categoria: document.getElementById('item-categoria').value,
+        datasheet: document.getElementById('item-datasheet').value,
+        comentarios: document.getElementById('item-comentarios').value,
+        foto_url: document.getElementById('item-foto').value
       };
       
-      console.log('📦 Guardando item:', item);
-      
       if (id) {
-        const { error } = await App.supabase.from('inventario').update(item).eq('id', id);
-        if (error) throw error;
-        showToast('✅ Actualizado correctamente', 'success');
+        await App.supabase.from('inventario').update(item).eq('id', id);
+        showToast('✅ Actualizado', 'success');
       } else {
-        const cleanName = nombre.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
-        const timestamp = Date.now().toString().slice(-6);
-        id = 'LAB-' + cleanName + '-' + timestamp;
-        
+        const cleanName = item.nombre.substring(0, 15).replace(/[^a-zA-Z0-9]/g, '-').toUpperCase();
+        id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
         item.id = id;
         item.created_at = new Date().toISOString();
         
-        const { data, error } = await App.supabase.from('inventario').insert([item]).select();
-        if (error) {
-          console.error('❌ Error al insertar:', error);
-          throw error;
-        }
-        
-        console.log('✅ Item creado:', data);
-        showToast('✅ Item creado: ' + id, 'success');
+        const { error } = await App.supabase.from('inventario').insert([item]);
+        if (error) throw error;
+        showToast('✅ Creado', 'success');
       }
       
-      closeModal();
-      document.getElementById('item-form').reset();
-      document.getElementById('item-id').value = '';
-      await loadInventory();
-      
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+      loadInventory();
     } catch (err) {
-      console.error('💥 Error:', err);
-      showToast('❌ Error: ' + err.message, 'error');
+      document.getElementById('item-error').textContent = 'Error: ' + err.message;
+      showToast('Error: ' + err.message, 'error');
     }
   });
   
+  // === PRÉSTAMOS ===
   document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     
     try {
       const items = [];
@@ -311,23 +257,28 @@ function setupEvents() {
             .eq('id', itemId)
             .single();
           
-          if (!itemData) throw new Error('Item no encontrado');
+          if (!itemData) {
+            throw new Error(`Item no encontrado`);
+          }
+          
           if (cantidad > itemData.cantidad) {
-            throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}`);
+            throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}, Solicitado: ${cantidad}`);
           }
           
           items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
         }
       }
       
-      if (items.length === 0) throw new Error('Debes seleccionar al menos un item');
+      if (items.length === 0) {
+        throw new Error('Debes seleccionar al menos un item');
+      }
       
       const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
       const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
       const motivo = document.getElementById('prestamo-motivo').value;
       
       if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
-        throw new Error('La fecha de devolución debe ser posterior');
+        throw new Error('La fecha de devolución debe ser posterior a la fecha de préstamo');
       }
       
       const estado = App.isAdmin ? 'autorizado' : 'pendiente';
@@ -344,10 +295,26 @@ function setupEvents() {
         created_at: new Date().toISOString()
       };
       
-      const { error } = await App.supabase.from('prestamos').insert([prestamoData]);
+      const { data: prestamo, error } = await App.supabase
+        .from('prestamos')
+        .insert([prestamoData])
+        .select()
+        .single();
+      
       if (error) throw error;
       
-      showToast(App.isAdmin ? '✅ Préstamo autorizado' : '📋 Solicitud enviada', 'success');
+      if (App.isAdmin) {
+        for (let item of items) {
+          await App.supabase.rpc('descontar_stock', {
+            p_item_id: item.item_id,
+            p_cantidad: item.cantidad
+          });
+        }
+        showToast('✅ Préstamo autorizado y registrado', 'success');
+      } else {
+        showToast('📋 Solicitud enviada. Espera autorización del administrador', 'success');
+      }
+      
       e.target.reset();
       document.getElementById('prestamo-items-container').innerHTML = `
         <div class="prestamo-item-row">
@@ -355,7 +322,7 @@ function setupEvents() {
             <option value="">Seleccionar item...</option>
           </select>
           <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-          <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
+          <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
         </div>
       `;
       loadPrestamos();
@@ -367,9 +334,9 @@ function setupEvents() {
     }
   });
   
+  // === MIEMBROS ===
   document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     try {
       const { error } = await App.supabase.from('usuarios').insert([{
         username: document.getElementById('miembro-username').value.trim(),
@@ -384,9 +351,18 @@ function setupEvents() {
       e.target.reset();
       loadMembers();
     } catch (err) {
-      showToast('Error: ' + err.message, 'error');
+      showToast('Error Miembros: ' + err.message, 'error');
     }
   });
+  
+  // === 🔍 BUSCADOR DE INVENTARIO ===
+  const searchInput = document.getElementById('inventory-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      filterInventory(query);
+    });
+  }
 }
 
 function loginSuccess(user) {
@@ -395,7 +371,7 @@ function loginSuccess(user) {
   
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('app-section').style.display = 'block';
-  document.getElementById('user-display').textContent = (user.nombre || user.username).split(' ')[0];
+  document.getElementById('user-display').textContent = user.nombre.split(' ')[0];
   
   const badge = document.getElementById('role-badge');
   badge.textContent = user.rol;
@@ -413,24 +389,89 @@ function updateAdminUI() {
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
 }
 
-// === ✅ DASHBOARD COMPLETAMENTE CORREGIDO ===
+// === 🔍 FUNCIÓN DE FILTRADO DE INVENTARIO ===
+function filterInventory(query) {
+  const tbody = document.getElementById('inventory-body');
+  const noResults = document.getElementById('search-no-results');
+  
+  if (!query) {
+    // Si no hay búsqueda, mostrar todo
+    renderInventoryTable(inventoryCache);
+    if (noResults) noResults.style.display = 'none';
+    return;
+  }
+
+  // Filtrar por nombre, ID, serie, categoría o comentarios
+  const filtered = inventoryCache.filter(item => {
+    const nombre = (item.nombre || '').toLowerCase();
+    const id = (item.id || '').toLowerCase();
+    const serie = (item.numero_serie || '').toLowerCase();
+    const categoria = (item.categoria || '').toLowerCase();
+    const comentarios = (item.comentarios || '').toLowerCase();
+    
+    return nombre.includes(query) || 
+           id.includes(query) || 
+           serie.includes(query) || 
+           categoria.includes(query) || 
+           comentarios.includes(query);
+  });
+
+  if (filtered.length > 0) {
+    renderInventoryTable(filtered);
+    if (noResults) noResults.style.display = 'none';
+  } else {
+    if (tbody) tbody.innerHTML = '';
+    if (noResults) noResults.style.display = 'block';
+  }
+}
+
+function renderInventoryTable(data) {
+  const tbody = document.getElementById('inventory-body');
+  if (!tbody) return;
+  
+  if (data && data.length > 0) {
+    tbody.innerHTML = data.map(i => `
+      <tr>
+        <td><code>${i.id}</code></td>
+        <td>${i.nombre}</td>
+        <td>${i.numero_serie || 'N/A'}</td>
+        <td>${i.cantidad}</td>
+        <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
+        <td><span class="status status-${i.estado}">${i.estado}</span></td>
+        <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄 Ver</a>` : '-'}</td>
+        <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬 Ver</button>` : '-'}</td>
+        <td>
+          <button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>
+          ${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}
+        </td>
+      </tr>
+    `).join('');
+  } else {
+    tbody.innerHTML = '<tr><td colspan="10">Sin registros</td></tr>';
+  }
+}
+
+// === DASHBOARD - SIN CAMBIOS ===
 async function loadDashboard() {
   if (!App.supabase) return;
   
+  const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
+  const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
+  const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+  
+  document.getElementById('stat-inventory').textContent = inv || 0;
+  document.getElementById('stat-members').textContent = mem || 0;
+  document.getElementById('stat-reports').textContent = rep || 0;
+  
   try {
-    // Estadísticas
-    const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
-    const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
-    const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
-    const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente', 'AUTORIZADO', 'PENDIENTE']);
+    const { data: bits, error: bitError } = await App.supabase
+      .from('bitacoras')
+      .select('*')
+      .order('fecha', { ascending: false })
+      .limit(5);
     
-    document.getElementById('stat-inventory').textContent = inv || 0;
-    document.getElementById('stat-members').textContent = mem || 0;
-    document.getElementById('stat-reports').textContent = rep || 0;
-    document.getElementById('stat-loans').textContent = loans || 0;
-
-    // Bitácoras
-    const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
+    if (bitError) throw bitError;
+    
     const bitList = document.getElementById('dashboard-bitacora-list');
     if (bitList) {
       if (bits && bits.length > 0) {
@@ -438,20 +479,32 @@ async function loadDashboard() {
           `<li class="activity-item">
             <span class="time">${new Date(b.fecha).toLocaleString()}</span>
             <strong>${b.titulo || 'Sin título'}</strong>
-            <small style="color:#666;display:block;margin-top:4px">${(b.actividad||'').substring(0,60)}${(b.actividad||'').length > 60 ? '...' : ''}</small>
+            <small style="color:#666;display:block;margin-top:4px">${b.actividad?.substring(0,60) || ''}${b.actividad?.length > 60 ? '...' : ''}</small>
           </li>`
         ).join('');
       } else {
         bitList.innerHTML = '<li class="text-muted">Sin registros de bitácora</li>';
       }
     }
-
-    // Reportes ✅ CORREGIDO
-    const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
-    const repList = document.getElementById('dashboard-reportes-list');
-    const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
+  } catch (err) {
+    console.error("❌ Error cargando bitácoras:", err);
+    const bitList = document.getElementById('dashboard-bitacora-list');
+    if (bitList) bitList.innerHTML = '<li class="text-muted">Error al cargar</li>';
+  }
+  
+  try {
+    const { data: reps, error: repError } = await App.supabase
+      .from('reportes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
     
+    if (repError) throw repError;
+    
+    const repList = document.getElementById('dashboard-reportes-list');
     if (repList) {
+      const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
+      
       if (reps && reps.length > 0) {
         repList.innerHTML = reps.map(r => 
           `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}">
@@ -465,11 +518,27 @@ async function loadDashboard() {
         repList.innerHTML = '<li class="text-muted">Sin reportes recientes</li>';
       }
     }
-
-    // Préstamos activos
-    const { data: prestamos } = await App.supabase.from('prestamos').select('*').in('estado', ['autorizado', 'AUTORIZADO']).order('created_at', { ascending: false }).limit(5);
-    const prestamosList = document.getElementById('dashboard-prestamos-list');
+  } catch (err) {
+    console.error("❌ Error cargando reportes:", err);
+    const repList = document.getElementById('dashboard-reportes-list');
+    if (repList) repList.innerHTML = '<li class="text-muted">Error al cargar</li>';
+  }
+  
+  try {
+    const { count: loans } = await App.supabase
+      .from('prestamos')
+      .select('*', { count: 'exact', head: true })
+      .in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
+    document.getElementById('stat-loans').textContent = loans || 0;
     
+    const { data: prestamos } = await App.supabase
+      .from('prestamos')
+      .select('*')
+      .eq('estado', 'autorizado')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
+    const prestamosList = document.getElementById('dashboard-prestamos-list');
     if (prestamosList) {
       if (prestamos && prestamos.length > 0) {
         prestamosList.innerHTML = prestamos.map(p => {
@@ -486,11 +555,19 @@ async function loadDashboard() {
         prestamosList.innerHTML = '<li class="text-muted">Sin préstamos activos</li>';
       }
     }
-
-    // Devoluciones ✅ CORREGIDO
-    const { data: devoluciones } = await App.supabase.from('prestamos').select('*').in('estado', ['devuelto', 'DEVUELTO']).order('fecha_confirmacion', { ascending: false }).limit(5);
-    const devolucionesList = document.getElementById('dashboard-devoluciones-list');
+  } catch (err) {
+    console.error("Error cargando préstamos:", err);
+  }
+  
+  try {
+    const { data: devoluciones } = await App.supabase
+      .from('prestamos')
+      .select('*')
+      .eq('estado', 'devuelto')
+      .order('fecha_confirmacion', { ascending: false })
+      .limit(5);
     
+    const devolucionesList = document.getElementById('dashboard-devoluciones-list');
     if (devolucionesList) {
       if (devoluciones && devoluciones.length > 0) {
         devolucionesList.innerHTML = devoluciones.map(d => {
@@ -507,14 +584,12 @@ async function loadDashboard() {
         devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones recientes</li>';
       }
     }
-
   } catch (err) {
-    console.error("❌ Error en loadDashboard:", err);
+    console.error("Error cargando devoluciones:", err);
   }
 }
 
 async function loadBitacora() {
-  if (!App.supabase) return;
   try {
     const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
     const tbody = document.getElementById('bitacora-body');
@@ -540,7 +615,6 @@ async function loadBitacora() {
 }
 
 async function loadReportes() {
-  if (!App.supabase) return;
   try {
     const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
     const container = document.getElementById('reportes-list');
@@ -573,40 +647,30 @@ async function loadReportes() {
   }
 }
 
+// === INVENTARIO CON CACHE PARA BÚSQUEDA ===
 async function loadInventory() {
-  if (!App.supabase) return;
   try {
     const { data } = await App.supabase.from('inventario').select('*');
+    inventoryCache = data || []; // 🔍 Guardar en cache para búsqueda
+    
     const tbody = document.getElementById('inventory-body');
     if (!tbody) return;
     
-    if (data && data.length > 0) {
-      tbody.innerHTML = data.map(i => `
-        <tr>
-          <td><code>${i.id}</code></td>
-          <td>${i.nombre}</td>
-          <td>${i.numero_serie || 'N/A'}</td>
-          <td>${i.cantidad}</td>
-          <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
-          <td><span class="status status-${i.estado}">${i.estado}</span></td>
-          <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄 Ver</a>` : '-'}</td>
-          <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬 Ver</button>` : '-'}</td>
-          <td>
-            <button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>
-            ${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}
-          </td>
-        </tr>
-      `).join('');
-    } else {
-      tbody.innerHTML = '<tr><td colspan="10">Sin registros</td></tr>';
-    }
+    // Limpiar búsqueda al recargar
+    const searchInput = document.getElementById('inventory-search');
+    if (searchInput) searchInput.value = '';
+    
+    renderInventoryTable(inventoryCache);
+    
+    const noResults = document.getElementById('search-no-results');
+    if (noResults) noResults.style.display = 'none';
+    
   } catch (err) {
     console.error("Error loadInventory:", err);
   }
 }
 
 async function loadMembers() {
-  if (!App.supabase) return;
   try {
     const { data } = await App.supabase.from('usuarios').select('*').order('username');
     const tbody = document.getElementById('miembros-body');
@@ -641,9 +705,10 @@ window.addPrestamoItem = async function() {
       <option value="">Cargando...</option>
     </select>
     <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-    <button type="button" class="btn-danger btn-sm" onclick="removePrestamoItem(this)">🗑️</button>
+    <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
   `;
   container.appendChild(newRow);
+  
   await loadPrestamoItems(newRow.querySelector('.prestamo-item-select'));
 };
 
@@ -657,9 +722,11 @@ window.removePrestamoItem = function(btn) {
 };
 
 async function loadPrestamoItems(selectElement) {
-  if (!App.supabase) return;
   try {
-    const { data } = await App.supabase.from('inventario').select('id, nombre, cantidad').gt('cantidad', 0);
+    const { data } = await App.supabase
+      .from('inventario')
+      .select('id, nombre, cantidad')
+      .gt('cantidad', 0);
     
     if (data && data.length > 0) {
       selectElement.innerHTML = '<option value="">Seleccionar item...</option>' + 
@@ -673,9 +740,101 @@ async function loadPrestamoItems(selectElement) {
   }
 }
 
-async function loadPrestamos() {
-  if (!App.supabase) return;
+window.authorizeLoan = async function(loanId, authorize) {
+  if (!confirm(`${authorize ? 'AUTORIZAR' : 'DENEGAR'} este préstamo?`)) return;
+  
   try {
+    if (authorize) {
+      const { data: prestamo } = await App.supabase
+        .from('prestamos')
+        .select('items')
+        .eq('id', loanId)
+        .single();
+      
+      for (let item of prestamo.items) {
+        await App.supabase.rpc('descontar_stock', {
+          p_item_id: item.item_id,
+          p_cantidad: item.cantidad
+        });
+      }
+      
+      await App.supabase.from('prestamos').update({
+        estado: 'autorizado',
+        autorizado_por: App.user.id,
+        fecha_autorizacion: new Date().toISOString()
+      }).eq('id', loanId);
+      
+      showToast('✅ Préstamo autorizado', 'success');
+    } else {
+      await App.supabase.from('prestamos').update({
+        estado: 'denegado',
+        autorizado_por: App.user.id,
+        fecha_autorizacion: new Date().toISOString()
+      }).eq('id', loanId);
+      
+      showToast('❌ Préstamo denegado', 'success');
+    }
+    
+    loadPrestamos();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.requestReturn = async function(loanId) {
+  if (!confirm('¿Solicitar devolución de este préstamo?')) return;
+  
+  try {
+    await App.supabase.from('prestamos').update({
+      estado: 'devolucion_pendiente',
+      fecha_devolucion_real: new Date().toISOString()
+    }).eq('id', loanId);
+    
+    showToast('📋 Devolución solicitada. Espera confirmación del administrador', 'success');
+    loadPrestamos();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.confirmReturn = async function(loanId) {
+  if (!confirm('¿Confirmar que los items fueron devueltos en buen estado?')) return;
+  
+  try {
+    const { data: prestamo } = await App.supabase
+      .from('prestamos')
+      .select('items')
+      .eq('id', loanId)
+      .single();
+    
+    for (let item of prestamo.items) {
+      await App.supabase.rpc('regresar_stock', {
+        p_item_id: item.item_id,
+        p_cantidad: item.cantidad
+      });
+    }
+    
+    await App.supabase.from('prestamos').update({
+      estado: 'devuelto',
+      confirmado_por: App.user.id,
+      fecha_confirmacion: new Date().toISOString()
+    }).eq('id', loanId);
+    
+    showToast('✅ Devolución confirmada', 'success');
+    loadPrestamos();
+    loadInventory();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+async function loadPrestamos() {
+  try {
+    console.log("🔄 Cargando préstamos...");
+    
     const itemSelects = document.querySelectorAll('.prestamo-item-select');
     for (let select of itemSelects) {
       await loadPrestamoItems(select);
@@ -691,52 +850,107 @@ async function loadPrestamos() {
     const { data } = await query.order('created_at', { ascending: false });
     
     const tbody = document.getElementById('prestamos-body');
-    if (!tbody) return;
+    const pendientesBody = document.getElementById('prestamos-pendientes-body');
+    const pendientesSection = document.getElementById('prestamos-pendientes-section');
     
-    if (data && data.length > 0) {
-      const misPrestamos = data.filter(p => 
-        App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente' || p.estado === 'AUTORIZADO'
-      );
-      
-      tbody.innerHTML = misPrestamos.map(l => {
-        const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-        let acciones = '';
+    if (tbody) {
+      if (data && data.length > 0) {
+        const misPrestamos = data.filter(p => 
+          App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente'
+        );
         
-        if (l.estado === 'autorizado' || l.estado === 'AUTORIZADO') {
-          acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
-        } else if (l.estado === 'devolucion_pendiente') {
-          acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
+        tbody.innerHTML = misPrestamos.map(l => {
+          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+          let acciones = '';
+          
+          if (l.estado === 'autorizado') {
+            acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
+          } else if (l.estado === 'devolucion_pendiente') {
+            acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
+          }
+          
+          return `
+            <tr>
+              <td><code>${l.id}</code></td>
+              <td>${itemsList}</td>
+              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+              <td><span class="status status-${l.estado}">${l.estado}</span></td>
+              <td>${acciones}</td>
+            </tr>
+          `;
+        }).join('');
+        
+        if (misPrestamos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
         }
-        
-        return `
-          <tr>
-            <td><code>${l.id}</code></td>
-            <td>${itemsList}</td>
-            <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
-            <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
-            <td><span class="status status-${l.estado}">${l.estado}</span></td>
-            <td>${acciones}</td>
-          </tr>
-        `;
-      }).join('');
-      
-      if (misPrestamos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
       }
-    } else {
-      tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
     }
+    
+    if (App.isAdmin && pendientesBody && pendientesSection) {
+      const pendientes = data.filter(p => p.estado === 'pendiente');
+      
+      if (pendientes.length > 0) {
+        pendientesSection.hidden = false;
+        pendientesBody.innerHTML = pendientes.map(l => {
+          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+          return `
+            <tr>
+              <td><code>${l.id}</code></td>
+              <td>${l.nombre_solicitante}</td>
+              <td>${itemsList}</td>
+              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+              <td>
+                <button class="btn-sm btn-success" onclick="authorizeLoan('${l.id}', true)">✅ Autorizar</button>
+                <button class="btn-sm btn-danger" onclick="authorizeLoan('${l.id}', false)">❌ Denegar</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } else {
+        pendientesSection.hidden = true;
+      }
+    }
+    
+    if (App.isAdmin && tbody) {
+      const devolucionesPendientes = data.filter(p => p.estado === 'devolucion_pendiente');
+      
+      devolucionesPendientes.forEach(l => {
+        const row = document.createElement('tr');
+        const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+        row.innerHTML = `
+          <td><code>${l.id}</code></td>
+          <td>${itemsList}</td>
+          <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+          <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+          <td><span class="status status-devolucion_pendiente">⏳ Devolución Pendiente</span></td>
+          <td><button class="btn-sm btn-success" onclick="confirmReturn('${l.id}')">✅ Confirmar Devolución</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+    
   } catch (err) {
     console.error("Error loadPrestamos:", err);
   }
 }
 
 window.editItem = async function(id) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-  if (!id) return showToast('Error: ID no válido', 'error');
+  console.log("✏️ Editando ID:", id);
+  
+  if (!id) {
+    return showToast('Error: ID no válido', 'error');
+  }
   
   try {
-    const { data: item, error } = await App.supabase.from('inventario').select('*').eq('id', id).single();
+    const { data: item, error } = await App.supabase
+      .from('inventario')
+      .select('*')
+      .eq('id', id)
+      .single();
     
     if (error || !item) {
       console.error("❌ Error al buscar:", error);
@@ -753,11 +967,15 @@ window.editItem = async function(id) {
     document.getElementById('item-cantidad').value = item.cantidad || 1;
     document.getElementById('item-funciona').value = item.funciona || 'desconocido';
     document.getElementById('item-estado').value = item.estado || 'disponible';
+    document.getElementById('item-categoria').value = item.categoria || 'otros';
     document.getElementById('item-datasheet').value = item.datasheet || '';
     document.getElementById('item-comentarios').value = item.comentarios || '';
+    document.getElementById('item-foto').value = item.foto_url || '';
+    document.getElementById('item-error').textContent = '';
     
     modal.classList.remove('hidden');
-    modal.classList.add('active');
+    modal.style.display = 'flex';
+    console.log("✅ Modal abierto");
   } catch (err) {
     console.error("Error editItem:", err);
     showToast('Error: ' + err.message, 'error');
@@ -770,7 +988,6 @@ window.viewComments = function(txt) {
 };
 
 window.deleteItem = async function(id) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
   if (!confirm('¿Eliminar?')) return;
   try {
     const { error } = await App.supabase.from('inventario').delete().eq('id', id);
@@ -783,7 +1000,6 @@ window.deleteItem = async function(id) {
 };
 
 window.deleteBitacora = async function(id) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
   if (!confirm('¿Eliminar?')) return;
   try {
     await App.supabase.from('bitacoras').delete().eq('id', id);
@@ -795,7 +1011,6 @@ window.deleteBitacora = async function(id) {
 };
 
 window.deleteMember = async function(username) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
   if (!confirm(`¿Eliminar a ${username}?`)) return;
   if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
   try {
@@ -808,7 +1023,6 @@ window.deleteMember = async function(username) {
 };
 
 window.closeReport = async function(id) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
   try {
     await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
     showToast('✅ Cerrado', 'success');
@@ -818,29 +1032,11 @@ window.closeReport = async function(id) {
   }
 };
 
-window.requestReturn = async function(loanId) {
-  if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-  if (!confirm('¿Solicitar devolución?')) return;
-  
-  try {
-    await App.supabase.from('prestamos').update({
-      estado: 'devolucion_pendiente',
-      fecha_devolucion_real: new Date().toISOString()
-    }).eq('id', loanId);
-    
-    showToast('📋 Devolución solicitada', 'success');
-    loadPrestamos();
-    loadDashboard();
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-  }
-};
-
 function inferCategory(n) {
   n = n.toLowerCase();
   if (n.includes('sensor')) return 'sensores';
-  if (n.includes('plc') || n.includes('variador') || n.includes('fuente')) return 'electronica';
-  if (n.includes('piston') || n.includes('cilindro')) return 'mecanica';
+  if (n.includes('plc') || n.includes('variador') || n.includes('fuente') || n.includes('interruptor') || n.includes('switch')) return 'electronica';
+  if (n.includes('piston') || n.includes('cilindro') || n.includes('neumatico')) return 'mecanica';
   if (n.includes('guante') || n.includes('cable') || n.includes('herramienta')) return 'herramientas';
   return 'otros';
 }
@@ -850,9 +1046,5 @@ function showToast(msg, type = 'info') {
   d.className = `toast ${type}`;
   d.textContent = msg;
   document.body.appendChild(d);
-  setTimeout(() => {
-    d.style.opacity = '0';
-    d.style.transform = 'translateY(20px)';
-    setTimeout(() => d.remove(), 300);
-  }, 3000);
+  setTimeout(() => d.remove(), 3000);
 }
