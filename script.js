@@ -9,32 +9,24 @@ const ADMIN_USERS = [
 
 let App = { user: null, isAdmin: false, supabase: null, inventoryData: [] };
 
-// FUNCIÓN PARA OCULTAR LOADER
-function hideLoader() {
-  const loader = document.getElementById('loading-overlay');
-  if (loader) loader.classList.add('hidden');
-}
-
-// INICIALIZACIÓN SEGURA (No se queda trabada)
+// INICIALIZACIÓN SIMPLE - SIN LOADER
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Mostrar Login tras 1 segundo sin importar nada
-  setTimeout(() => {
-    hideLoader();
-    document.getElementById('login-section').style.display = 'flex';
-    document.getElementById('app-section').style.display = 'none';
-  }, 1000);
-
-  // 2. Iniciar Supabase en segundo plano (si falla, no bloquea la UI)
+  console.log("✅ App cargada");
+  
+  // Asegurar que el login se vea
+  document.getElementById('login-section').style.display = 'flex';
+  document.getElementById('app-section').style.display = 'none';
+  
+  // Inicializar Supabase
   try {
     if (window.supabase) {
       App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log("✅ Supabase conectado");
+      console.log("✅ Supabase listo");
     }
   } catch (e) {
-    console.error("❌ Error iniciando Supabase", e);
+    console.error("❌ Error Supabase:", e);
   }
   
-  // 3. Configurar eventos
   setupEvents();
 });
 
@@ -68,14 +60,14 @@ function setupEvents() {
     try {
       const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
       if (error || !data) {
-        if (errorDiv) errorDiv.textContent = '❌ Credenciales incorrectas';
+        if (errorDiv) errorDiv.textContent = ' Credenciales incorrectas';
         showToast('❌ Usuario o contraseña incorrectos', 'error');
       } else {
         loginSuccess(data);
       }
     } catch (err) {
       if (errorDiv) errorDiv.textContent = '❌ Error de conexión';
-      showToast(' Error de conexión', 'error');
+      showToast('❌ Error de conexión', 'error');
     }
   });
   
@@ -83,7 +75,6 @@ function setupEvents() {
   document.getElementById('logout-btn')?.addEventListener('click', () => {
     App.user = null;
     App.isAdmin = false;
-    hideLoader();
     document.getElementById('app-section').style.display = 'none';
     document.getElementById('login-section').style.display = 'flex';
   });
@@ -228,7 +219,7 @@ function setupEvents() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast('📦 Exportado como CSV', 'success');
+    showToast(' Exportado como CSV', 'success');
   });
   
   // Modal Inventario
@@ -381,7 +372,6 @@ function loginSuccess(user) {
   App.user = user;
   App.isAdmin = user.rol === 'administrador';
   
-  hideLoader();
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('app-section').style.display = 'block';
   document.getElementById('user-display').textContent = user.nombre?.split(' ')[0] || user.username;
@@ -514,8 +504,8 @@ function renderInventoryTable(data) {
       <td><code>${i.id}</code></td><td>${i.nombre}</td><td>${i.numero_serie || 'N/A'}</td><td>${i.cantidad}</td>
       <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
       <td><span class="status status-${i.estado}">${i.estado}</span></td>
-      <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄</a>` : '-'}</td>
-      <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬</button>` : '-'}</td>
+      <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm"></a>` : '-'}</td>
+      <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')"></button>` : '-'}</td>
       <td><button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}</td>
     </tr>
   `).join('') : '<tr><td colspan="9">Sin registros</td></tr>';
@@ -524,7 +514,7 @@ function renderInventoryTable(data) {
 async function loadInventory() {
   if (!App.supabase) {
     const tbody = document.getElementById('inventory-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="9">️ Sin conexión</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9">⚠️ Sin conexión</td></tr>';
     return;
   }
   
@@ -556,7 +546,7 @@ async function loadMembers() {
     if (!tbody) return;
     tbody.innerHTML = data && data.length > 0 ? data.map(m => `
       <tr><td>${m.id}</td><td>@${m.username}</td><td>${m.nombre_completo || '-'}</td><td>${m.rol}</td><td>${m.area || '-'}</td>
-      <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : ''}</td></tr>
+      <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">️</button>` : ''}</td></tr>
     `).join('') : '<tr><td colspan="6">Sin registros</td></tr>';
   } catch (err) { console.error("Error:", err); }
 }
@@ -647,7 +637,7 @@ async function loadPrestamos() {
       const misPrestamos = data.filter(p => App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente');
       tbody.innerHTML = misPrestamos.length > 0 ? misPrestamos.map(l => {
         const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-        let acciones = l.estado === 'autorizado' ? `<button class="btn-sm" onclick="requestReturn('${l.id}')"> Devolver</button>` : (l.estado === 'devolucion_pendiente' ? '<span> Pendiente</span>' : '');
+        let acciones = l.estado === 'autorizado' ? `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Devolver</button>` : (l.estado === 'devolucion_pendiente' ? '<span>⏳ Pendiente</span>' : '');
         return `<tr><td><code>${l.id}</code></td><td>${itemsList}</td><td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td><td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td><td>${l.estado}</td><td>${acciones}</td></tr>`;
       }).join('') : '<tr><td colspan="6">Sin préstamos</td></tr>';
     }
@@ -714,7 +704,7 @@ window.deleteMember = async function(username) {
   if (!App.supabase || !confirm(`¿Eliminar ${username}?`) || username === 'luis' || username === 'sixto') return;
   try {
     await App.supabase.from('usuarios').delete().eq('username', username);
-    showToast('️ Eliminado', 'success');
+    showToast('🗑️ Eliminado', 'success');
     loadMembers();
   } catch (err) { showToast('Error: ' + err.message, 'error'); }
 };
