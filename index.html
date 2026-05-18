@@ -27,11 +27,11 @@
       <form id="login-form" class="auth-form">
         <div class="form-group">
           <label>Usuario</label>
-          <input type="text" id="username" required>
+          <input type="text" id="username" required autocomplete="username">
         </div>
         <div class="form-group">
           <label>Contraseña</label>
-          <input type="password" id="password" required>
+          <input type="password" id="password" required autocomplete="current-password">
         </div>
         <div id="login-error" class="error-message"></div>
         <button type="submit" class="btn-primary btn-full">⚡ ACCEDER</button>
@@ -42,7 +42,7 @@
   <section id="app-section" class="app-section" style="display: none;">
     <header class="main-header">
       <div class="header-left">
-        <button id="menu-toggle" class="menu-btn">☰</button>
+        <button id="menu-toggle" class="menu-btn" aria-label="Menú">☰</button>
         <div class="brand">
           <h2>CHAK' MO'OL <span class="badge">PRO</span></h2>
           <p class="tagline">EL PODER DE IR MÁS ALLÁ</p>
@@ -106,9 +106,10 @@
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Gestión de Inventario</h2>
         
-        <!-- 🔍 BUSCADOR AGREGADO -->
-        <div class="search-container" style="margin-bottom:16px;">
-          <input type="text" id="inventory-search" class="search-input" placeholder="🔍 Buscar por nombre, ID, serie, categoría o palabra clave (ej: plc)...">
+        <!-- 🔍 BÚSQUEDA EN INVENTARIO (NUEVO) -->
+        <div class="inventory-search">
+          <input type="search" id="inventory-search" placeholder="🔍 Buscar por nombre, serie, categoría o comentario..." autocomplete="off">
+          <button id="search-clear" class="btn-secondary btn-sm" hidden>✕</button>
         </div>
         
         <div class="inventory-actions">
@@ -132,12 +133,15 @@
             </thead>
             <tbody id="inventory-body"></tbody>
           </table>
+          <div id="inventory-no-results" class="no-results" hidden>
+            <p>⚠️ No se encontraron resultados para tu búsqueda</p>
+            <button id="search-reset" class="btn-secondary btn-sm">Limpiar búsqueda</button>
+          </div>
         </div>
-        <div id="search-no-results" class="no-results" style="display:none;text-align:center;padding:20px;color:var(--text-muted);">🔍 No se encontraron resultados para tu búsqueda</div>
 
         <div id="item-modal" class="modal" hidden>
           <div class="modal-content">
-            <button class="modal-close">&times;</button>
+            <button class="modal-close" aria-label="Cerrar">&times;</button>
             <h3 id="modal-title">Equipo</h3>
             <form id="item-form">
               <input type="hidden" id="item-id">
@@ -147,7 +151,7 @@
               </div>
               <div class="form-row">
                 <div class="form-group"><label>N° Serie</label><input type="text" id="item-serie"></div>
-                <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1"></div>
+                <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1" min="1"></div>
               </div>
               <div class="form-row">
                 <div class="form-group">
@@ -259,7 +263,7 @@
                   <option value="">Seleccionar item...</option>
                 </select>
                 <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-                <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
+                <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
               </div>
             </div>
             <button type="button" class="btn-secondary btn-sm" onclick="addPrestamoItem()" style="margin-top: 10px;">+ Agregar otro item</button>
