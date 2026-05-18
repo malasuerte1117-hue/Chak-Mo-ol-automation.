@@ -15,6 +15,7 @@
   <div id="loading-overlay" class="loading-overlay">
     <div class="loader"></div>
     <p>Conectando con CHAK' MO'OL Core...</p>
+    <p id="loading-status" style="font-size: 0.8rem; color: #666; margin-top: 10px;"></p>
   </div>
 
   <section id="login-section" class="auth-section" style="display: none;">
@@ -106,7 +107,6 @@
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Gestión de Inventario</h2>
         
-        <!-- 🔍 BÚSQUEDA EN INVENTARIO (NUEVO) -->
         <div class="inventory-search">
           <input type="search" id="inventory-search" placeholder="🔍 Buscar por nombre, serie, categoría o comentario..." autocomplete="off">
           <button id="search-clear" class="btn-secondary btn-sm" hidden>✕</button>
