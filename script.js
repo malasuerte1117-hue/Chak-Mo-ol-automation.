@@ -9,71 +9,33 @@ const ADMIN_USERS = [
 
 let App = { user: null, isAdmin: false, supabase: null, inventoryData: [] };
 
-// Función para ocultar loader de forma segura
+// FUNCIÓN PARA OCULTAR LOADER
 function hideLoader() {
   const loader = document.getElementById('loading-overlay');
-  if (loader) {
-    loader.classList.add('hidden');
-    setTimeout(() => {
-      loader.style.display = 'none';
-    }, 500);
-  }
+  if (loader) loader.classList.add('hidden');
 }
 
-// Función para mostrar login
-function showLogin() {
-  hideLoader();
-  const loginSection = document.getElementById('login-section');
-  const appSection = document.getElementById('app-section');
-  if (loginSection) loginSection.style.display = 'flex';
-  if (appSection) appSection.style.display = 'none';
-}
-
+// INICIALIZACIÓN SEGURA (No se queda trabada)
 window.addEventListener('DOMContentLoaded', () => {
-  console.log("🚀 Iniciando CHAK' MO'OL...");
-  
-  // Forzar ocultar loader después de 3 segundos máximo
-  const loaderTimeout = setTimeout(() => {
-    console.warn("⚠️ Timeout de carga - mostrando login");
-    showLogin();
-  }, 3000);
-  
-  // Verificar Supabase
-  if (window.supabase) {
-    console.log("✅ Supabase library cargada");
-    try {
+  // 1. Mostrar Login tras 1 segundo sin importar nada
+  setTimeout(() => {
+    hideLoader();
+    document.getElementById('login-section').style.display = 'flex';
+    document.getElementById('app-section').style.display = 'none';
+  }, 1000);
+
+  // 2. Iniciar Supabase en segundo plano (si falla, no bloquea la UI)
+  try {
+    if (window.supabase) {
       App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log("✅ Cliente Supabase creado");
-      
-      // Test de conexión rápido
-      App.supabase.from('inventario').select('count', { count: 'exact', head: true }).then(({ error }) => {
-        if (error) {
-          console.warn("⚠️ Error conectando a Supabase:", error.message);
-        } else {
-          console.log("✅ Conexión a Supabase exitosa");
-        }
-      }).catch(err => {
-        console.warn("⚠️ Error en test de conexión:", err.message);
-      });
-      
-    } catch (error) {
-      console.error("❌ Error creando cliente Supabase:", error);
-      const statusEl = document.getElementById('loading-status');
-      if (statusEl) statusEl.textContent = "Error de conexión - Usando modo offline";
+      console.log("✅ Supabase conectado");
     }
-  } else {
-    console.error("❌ Supabase library NO cargada");
-    const statusEl = document.getElementById('loading-status');
-    if (statusEl) statusEl.textContent = "Error: Sin conexión a internet";
+  } catch (e) {
+    console.error("❌ Error iniciando Supabase", e);
   }
   
-  // Limpiar timeout y mostrar login
-  clearTimeout(loaderTimeout);
-  setTimeout(() => {
-    showLogin();
-    setupEvents();
-    console.log("✅ Login mostrado - Sistema listo");
-  }, 500);
+  // 3. Configurar eventos
+  setupEvents();
 });
 
 function setupEvents() {
@@ -83,43 +45,25 @@ function setupEvents() {
     document.getElementById('sidebar')?.classList.toggle('open');
   });
   
-  // Cerrar sidebar al hacer click fuera en mobile
+  // Cerrar sidebar al hacer click fuera
   document.getElementById('main-content')?.addEventListener('click', () => {
-    if (window.innerWidth < 1024) {
-      document.getElementById('sidebar')?.classList.remove('open');
-    }
+    if (window.innerWidth < 1024) document.getElementById('sidebar')?.classList.remove('open');
   });
   
-  // Cerrar sidebar al hacer click en un item
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => {
-      if (window.innerWidth < 1024) {
-        document.getElementById('sidebar')?.classList.remove('open');
-      }
-    });
-  });
-  
+  // Login Form
   document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const u = document.getElementById('username').value.trim().toLowerCase();
     const p = document.getElementById('password').value;
     const errorDiv = document.getElementById('login-error');
-    
     if (errorDiv) errorDiv.textContent = '';
     
-    // Verificar admins locales primero
+    // Check admins locales
     const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
-    if (master) {
-      loginSuccess(master);
-      return;
-    }
+    if (master) { loginSuccess(master); return; }
     
-    // Si no hay Supabase, mostrar error
-    if (!App.supabase) {
-      if (errorDiv) errorDiv.textContent = '❌ Sin conexión a base de datos';
-      showToast('❌ Error de conexión', 'error');
-      return;
-    }
+    // Check DB
+    if (!App.supabase) return showToast('❌ Sin conexión a base de datos', 'error');
     
     try {
       const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
@@ -130,18 +74,21 @@ function setupEvents() {
         loginSuccess(data);
       }
     } catch (err) {
-      console.error("Error login:", err);
       if (errorDiv) errorDiv.textContent = '❌ Error de conexión';
-      showToast('❌ Error de conexión', 'error');
+      showToast(' Error de conexión', 'error');
     }
   });
   
+  // Logout
   document.getElementById('logout-btn')?.addEventListener('click', () => {
     App.user = null;
     App.isAdmin = false;
-    showLogin();
+    hideLoader();
+    document.getElementById('app-section').style.display = 'none';
+    document.getElementById('login-section').style.display = 'flex';
   });
   
+  // Navegación
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const view = e.currentTarget.dataset.view;
@@ -158,6 +105,8 @@ function setupEvents() {
       if (target) { target.classList.add('active'); target.hidden = false; }
       e.currentTarget.classList.add('active');
       
+      if (window.innerWidth < 1024) document.getElementById('sidebar')?.classList.remove('open');
+      
       if (view === 'dashboard') loadDashboard();
       if (view === 'inventario') loadInventory();
       if (view === 'bitacora') loadBitacora();
@@ -167,7 +116,7 @@ function setupEvents() {
     });
   });
   
-  // 🔍 EVENTOS PARA BÚSQUEDA EN INVENTARIO
+  // 🔍 EVENTOS DE BÚSQUEDA EN INVENTARIO
   const searchInput = document.getElementById('inventory-search');
   const searchClear = document.getElementById('search-clear');
   const searchReset = document.getElementById('search-reset');
@@ -177,10 +126,7 @@ function setupEvents() {
     searchInput.addEventListener('input', (e) => {
       const term = e.target.value.toLowerCase().trim();
       filterInventory(term);
-      
-      if (searchClear) {
-        searchClear.hidden = term === '';
-      }
+      if (searchClear) searchClear.hidden = term === '';
     });
     
     searchInput.addEventListener('keydown', (e) => {
@@ -215,10 +161,10 @@ function setupEvents() {
     });
   }
   
+  // Bitácora Submit
   document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-    
     try {
       const { error } = await App.supabase.from('bitacoras').insert([{
         usuario_id: App.user.id,
@@ -235,10 +181,10 @@ function setupEvents() {
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
   
+  // Reportes Submit
   document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-    
     try {
       const { error } = await App.supabase.from('reportes').insert([{
         usuario_id: App.user.id,
@@ -257,15 +203,14 @@ function setupEvents() {
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
   
+  // Exportar Excel
   document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-    
+    if (!App.supabase) return showToast(' Sin conexión', 'error');
     const { data } = await App.supabase.from('inventario').select('*');
     if (!data?.length) return showToast('Sin datos para exportar', 'warning');
     
     const headers = Object.keys(data[0]);
     let csvContent = headers.join(',') + '\n';
-    
     data.forEach(row => {
       const values = headers.map(header => {
         const val = row[header];
@@ -283,10 +228,10 @@ function setupEvents() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
     showToast('📦 Exportado como CSV', 'success');
   });
   
+  // Modal Inventario
   const modal = document.getElementById('item-modal');
   document.querySelector('.modal-close')?.addEventListener('click', () => {
     if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
@@ -312,10 +257,8 @@ function setupEvents() {
   document.getElementById('item-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-    
     try {
       let id = document.getElementById('item-id').value;
-      
       const item = {
         nombre: document.getElementById('item-nombre').value,
         numero_serie: document.getElementById('item-serie').value || 'N/A',
@@ -336,12 +279,10 @@ function setupEvents() {
         id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
         item.id = id;
         item.created_at = new Date().toISOString();
-        
         const { error } = await App.supabase.from('inventario').insert([item]);
         if (error) throw error;
         showToast('✅ Creado', 'success');
       }
-      
       if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
       loadInventory();
     } catch (err) {
@@ -350,44 +291,32 @@ function setupEvents() {
     }
   });
   
+  // Préstamos Submit
   document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-    
     try {
       const items = [];
       const itemRows = document.querySelectorAll('.prestamo-item-row');
-      
       for (let row of itemRows) {
         const itemId = row.querySelector('.prestamo-item-select').value;
         const cantidad = parseInt(row.querySelector('.prestamo-cantidad').value);
-        
         if (itemId && cantidad > 0) {
-          const { data: itemData } = await App.supabase
-            .from('inventario')
-            .select('nombre, cantidad')
-            .eq('id', itemId)
-            .single();
-          
+          const { data: itemData } = await App.supabase.from('inventario').select('nombre, cantidad').eq('id', itemId).single();
           if (!itemData) throw new Error(`Item no encontrado`);
-          if (cantidad > itemData.cantidad) throw new Error(`Stock insuficiente para "${itemData.nombre}"`);
-          
+          if (cantidad > itemData.cantidad) throw new Error(`Stock insuficiente`);
           items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
         }
       }
-      
       if (items.length === 0) throw new Error('Debes seleccionar al menos un item');
       
       const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
       const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
       const motivo = document.getElementById('prestamo-motivo').value;
       
-      if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
-        throw new Error('La fecha de devolución debe ser posterior');
-      }
+      if (new Date(fechaInicio) > new Date(fechaDevolucion)) throw new Error('Fecha inválida');
       
       const estado = App.isAdmin ? 'autorizado' : 'pendiente';
-      
       const prestamoData = {
         usuario_id: App.user.id,
         nombre_solicitante: App.user.nombre_completo || App.user.username,
@@ -400,20 +329,12 @@ function setupEvents() {
         created_at: new Date().toISOString()
       };
       
-      const { data: prestamo, error } = await App.supabase
-        .from('prestamos')
-        .insert([prestamoData])
-        .select()
-        .single();
-      
+      const { data: prestamo, error } = await App.supabase.from('prestamos').insert([prestamoData]).select().single();
       if (error) throw error;
       
       if (App.isAdmin) {
         for (let item of items) {
-          await App.supabase.rpc('descontar_stock', {
-            p_item_id: item.item_id,
-            p_cantidad: item.cantidad
-          });
+          await App.supabase.rpc('descontar_stock', { p_item_id: item.item_id, p_cantidad: item.cantidad });
         }
         showToast('✅ Préstamo autorizado', 'success');
       } else {
@@ -423,26 +344,22 @@ function setupEvents() {
       e.target.reset();
       document.getElementById('prestamo-items-container').innerHTML = `
         <div class="prestamo-item-row">
-          <select class="prestamo-item-select" required>
-            <option value="">Seleccionar item...</option>
-          </select>
+          <select class="prestamo-item-select" required><option value="">Seleccionar item...</option></select>
           <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
           <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
         </div>
       `;
-      loadPrestamos();
-      loadDashboard();
-      
+      loadPrestamos(); loadDashboard();
     } catch (err) {
       document.getElementById('prestamo-error').textContent = err.message;
       showToast('Error: ' + err.message, 'error');
     }
   });
   
+  // Miembros Submit
   document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!App.supabase) return showToast('❌ Sin conexión', 'error');
-    
     try {
       const { error } = await App.supabase.from('usuarios').insert([{
         username: document.getElementById('miembro-username').value.trim(),
@@ -456,9 +373,7 @@ function setupEvents() {
       showToast('✅ Miembro creado', 'success');
       e.target.reset();
       loadMembers();
-    } catch (err) {
-      showToast('Error: ' + err.message, 'error');
-    }
+    } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
 }
 
@@ -490,11 +405,7 @@ function updateAdminUI() {
 }
 
 async function loadDashboard() {
-  if (!App.supabase) {
-    console.warn("Sin Supabase - Dashboard limitado");
-    return;
-  }
-  
+  if (!App.supabase) return;
   try {
     const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
     const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
@@ -533,12 +444,8 @@ async function loadDashboard() {
     }
     
     const devolucionesList = document.getElementById('dashboard-devoluciones-list');
-    if (devolucionesList) {
-      devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones</li>';
-    }
-  } catch (err) {
-    console.error("Error dashboard:", err);
-  }
+    if (devolucionesList) devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones</li>';
+  } catch (err) { console.error("Error dashboard:", err); }
 }
 
 async function loadBitacora() {
@@ -570,6 +477,7 @@ async function loadReportes() {
   } catch (err) { console.error("Error:", err); }
 }
 
+// 🔍 LÓGICA DE FILTRADO DE INVENTARIO
 function filterInventory(searchTerm) {
   const tbody = document.getElementById('inventory-body');
   const noResults = document.getElementById('inventory-no-results');
@@ -616,7 +524,7 @@ function renderInventoryTable(data) {
 async function loadInventory() {
   if (!App.supabase) {
     const tbody = document.getElementById('inventory-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="9">⚠️ Sin conexión</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9">️ Sin conexión</td></tr>';
     return;
   }
   
@@ -648,7 +556,7 @@ async function loadMembers() {
     if (!tbody) return;
     tbody.innerHTML = data && data.length > 0 ? data.map(m => `
       <tr><td>${m.id}</td><td>@${m.username}</td><td>${m.nombre_completo || '-'}</td><td>${m.rol}</td><td>${m.area || '-'}</td>
-      <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : '🔒'}</td></tr>
+      <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : ''}</td></tr>
     `).join('') : '<tr><td colspan="6">Sin registros</td></tr>';
   } catch (err) { console.error("Error:", err); }
 }
@@ -739,7 +647,7 @@ async function loadPrestamos() {
       const misPrestamos = data.filter(p => App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente');
       tbody.innerHTML = misPrestamos.length > 0 ? misPrestamos.map(l => {
         const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-        let acciones = l.estado === 'autorizado' ? `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Devolver</button>` : (l.estado === 'devolucion_pendiente' ? '<span>⏳ Pendiente</span>' : '');
+        let acciones = l.estado === 'autorizado' ? `<button class="btn-sm" onclick="requestReturn('${l.id}')"> Devolver</button>` : (l.estado === 'devolucion_pendiente' ? '<span> Pendiente</span>' : '');
         return `<tr><td><code>${l.id}</code></td><td>${itemsList}</td><td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td><td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td><td>${l.estado}</td><td>${acciones}</td></tr>`;
       }).join('') : '<tr><td colspan="6">Sin préstamos</td></tr>';
     }
@@ -806,7 +714,7 @@ window.deleteMember = async function(username) {
   if (!App.supabase || !confirm(`¿Eliminar ${username}?`) || username === 'luis' || username === 'sixto') return;
   try {
     await App.supabase.from('usuarios').delete().eq('username', username);
-    showToast('🗑️ Eliminado', 'success');
+    showToast('️ Eliminado', 'success');
     loadMembers();
   } catch (err) { showToast('Error: ' + err.message, 'error'); }
 };
