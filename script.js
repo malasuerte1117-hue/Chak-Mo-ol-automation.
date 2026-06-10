@@ -1,4 +1,7 @@
-// CONFIGURACIÓN
+// ============================================
+// CHAK' MO'OL - Club de Robótica
+// ============================================
+
 const SUPABASE_URL = 'https://wmoejlgebchqtchzopuf.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtb2VqbGdlYmNocXRjaHpvcHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Njg0MjksImV4cCI6MjA5MzA0NDQyOX0.lK3BKNmCHlMIDtLWOAwsyvuWNMvIcgQvzUH0IjYZ9y4';
 
@@ -9,39 +12,67 @@ const ADMIN_USERS = [
 
 let App = { user: null, isAdmin: false, supabase: null };
 
-// Esperar a que el DOM esté listo
-document.addEventListener('DOMContentLoaded', function() {
-  console.log("✅ DOM cargado");
-  
-  // Ocultar loader inmediatamente
-  setTimeout(function() {
+// ============================================
+// OCULTAR LOADER - SIEMPRE SE EJECUTA
+// ============================================
+function hideLoader() {
+  try {
     var loader = document.getElementById('loading-overlay');
     if (loader) {
       loader.style.display = 'none';
-      console.log("✅ Loader ocultado");
+      loader.style.opacity = '0';
+      loader.style.visibility = 'hidden';
     }
-  }, 500);
-  
-  // Mostrar login
-  var loginSection = document.getElementById('login-section');
-  var appSection = document.getElementById('app-section');
-  
-  if (loginSection) loginSection.style.display = 'flex';
-  if (appSection) appSection.style.display = 'none';
-  
-  // Inicializar Supabase si existe
-  if (window.supabase) {
-    App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log("✅ Supabase inicializado");
+  } catch(e) {
+    console.error('Error ocultando loader:', e);
   }
-  
-  // Configurar eventos
-  setupEvents();
-  console.log("✅ Setup completado");
-});
+}
 
+// Ocultar loader después de 1 segundo (forzado)
+setTimeout(hideLoader, 1000);
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+function initApp() {
+  console.log('🚀 Iniciando aplicación...');
+  
+  try {
+    var loginSection = document.getElementById('login-section');
+    var appSection = document.getElementById('app-section');
+    
+    if (loginSection) loginSection.style.display = 'flex';
+    if (appSection) appSection.style.display = 'none';
+    
+    if (window.supabase) {
+      App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      console.log('✅ Supabase inicializado');
+    } else {
+      console.warn('⚠️ Supabase no disponible');
+    }
+    
+    setupEvents();
+    console.log('✅ App lista');
+  } catch(e) {
+    console.error('❌ Error en init:', e);
+  } finally {
+    hideLoader();
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
 function setupEvents() {
-  // Login form
+  console.log(' Configurando eventos...');
+  
+  // LOGIN
   var loginForm = document.getElementById('login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', function(e) {
@@ -50,18 +81,20 @@ function setupEvents() {
     });
   }
   
-  // Logout button
+  // LOGOUT
   var logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', function() {
       App.user = null;
       App.isAdmin = false;
-      document.getElementById('app-section').style.display = 'none';
-      document.getElementById('login-section').style.display = 'flex';
+      var appSection = document.getElementById('app-section');
+      var loginSection = document.getElementById('login-section');
+      if (appSection) appSection.style.display = 'none';
+      if (loginSection) loginSection.style.display = 'flex';
     });
   }
   
-  // Menu toggle (hamburguesa)
+  // MENÚ HAMBURGUESA (MÓVIL)
   var menuToggle = document.getElementById('menu-toggle');
   if (menuToggle) {
     menuToggle.addEventListener('click', function(e) {
@@ -73,7 +106,7 @@ function setupEvents() {
     });
   }
   
-  // Cerrar sidebar al hacer clic fuera
+  // CERRAR SIDEBAR AL HACER CLIC FUERA
   document.addEventListener('click', function(e) {
     var sidebar = document.getElementById('sidebar');
     var menuBtn = document.getElementById('menu-toggle');
@@ -84,31 +117,27 @@ function setupEvents() {
     }
   });
   
-  // Navigation items
+  // NAVEGACIÓN
   var navItems = document.querySelectorAll('.nav-item');
   navItems.forEach(function(btn) {
     btn.addEventListener('click', function(e) {
       var view = e.currentTarget.getAttribute('data-view');
       if (!view) return;
       
-      // Verificar admin
       if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) {
-        showToast('🔐 Solo administradores', 'error');
+        showToast(' Solo administradores', 'error');
         return;
       }
       
-      // Ocultar todas las vistas
-      var views = document.querySelectorAll('.view');
-      views.forEach(function(v) { 
+      document.querySelectorAll('.view').forEach(function(v) { 
         v.classList.remove('active'); 
         v.hidden = true; 
       });
       
-      // Desactivar todos los nav items
-      var navs = document.querySelectorAll('.nav-item');
-      navs.forEach(function(n) { n.classList.remove('active'); });
+      document.querySelectorAll('.nav-item').forEach(function(n) { 
+        n.classList.remove('active'); 
+      });
       
-      // Mostrar vista seleccionada
       var target = document.getElementById('view-' + view);
       if (target) { 
         target.classList.add('active'); 
@@ -122,7 +151,6 @@ function setupEvents() {
         if (sidebar) sidebar.classList.remove('open');
       }
       
-      // Cargar datos
       if (view === 'dashboard') loadDashboard();
       if (view === 'inventario') loadInventory();
       if (view === 'bitacora') loadBitacora();
@@ -132,7 +160,7 @@ function setupEvents() {
     });
   });
   
-  // Bitacora form
+  // FORM BITÁCORA
   var bitacoraForm = document.getElementById('bitacora-form');
   if (bitacoraForm) {
     bitacoraForm.addEventListener('submit', async function(e) {
@@ -149,13 +177,15 @@ function setupEvents() {
         }]);
         showToast('✅ Bitácora guardada', 'success');
         this.reset();
-        loadBitacora(); 
+        loadBitacora();
         loadDashboard();
-      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      } catch(err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     });
   }
   
-  // Reporte form
+  // FORM REPORTE
   var reporteForm = document.getElementById('reporte-form');
   if (reporteForm) {
     reporteForm.addEventListener('submit', async function(e) {
@@ -174,44 +204,51 @@ function setupEvents() {
         }]);
         showToast('🚨 Reporte creado', 'success');
         this.reset();
-        loadReportes(); 
+        loadReportes();
         loadDashboard();
-      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      } catch(err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     });
   }
   
-  // Export Excel
+  // EXPORTAR EXCEL
   var btnExport = document.getElementById('btn-export-excel');
   if (btnExport) {
     btnExport.addEventListener('click', async function() {
       if (!App.supabase) { showToast('Sin conexión', 'error'); return; }
-      var result = await App.supabase.from('inventario').select('*');
-      var data = result.data;
-      if (!data || data.length === 0) { showToast('Sin datos', 'warning'); return; }
-      
-      var headers = Object.keys(data[0]);
-      var csv = headers.join(',') + '\n';
-      data.forEach(function(row) {
-        var values = headers.map(function(h) {
-          var val = row[h];
-          return typeof val === 'string' && val.includes(',') ? '"' + val + '"' : val;
+      try {
+        var result = await App.supabase.from('inventario').select('*');
+        var data = result.data;
+        if (!data || data.length === 0) { showToast('Sin datos', 'warning'); return; }
+        
+        var headers = Object.keys(data[0]);
+        var csv = headers.join(',') + '\n';
+        
+        data.forEach(function(row) {
+          var values = headers.map(function(h) {
+            var val = row[h];
+            return typeof val === 'string' && val.includes(',') ? '"' + val + '"' : val;
+          });
+          csv += values.join(',') + '\n';
         });
-        csv += values.join(',') + '\n';
-      });
-      
-      var blob = new Blob([csv], { type: 'text/csv' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'Inventario.csv';
-      a.click();
-      showToast('📦 Exportado', 'success');
+        
+        var blob = new Blob([csv], { type: 'text/csv' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'Inventario.csv';
+        a.click();
+        showToast('📦 Exportado', 'success');
+      } catch(err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     });
   }
   
-  // Modal close
-  var modalClose = document.querySelector('.modal-close');
+  // MODAL ITEM
   var modal = document.getElementById('item-modal');
+  var modalClose = document.querySelector('.modal-close');
   if (modalClose && modal) {
     modalClose.addEventListener('click', function() {
       modal.classList.add('hidden');
@@ -219,11 +256,9 @@ function setupEvents() {
     });
   }
   
-  // Add item button
   var btnAddItem = document.getElementById('btn-add-item');
-  if (btnAddItem) {
+  if (btnAddItem && modal) {
     btnAddItem.addEventListener('click', function() {
-      if (!modal) return;
       document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
       document.getElementById('item-form').reset();
       document.getElementById('item-id').value = '';
@@ -234,7 +269,7 @@ function setupEvents() {
     });
   }
   
-  // Item form
+  // FORM ITEM
   var itemForm = document.getElementById('item-form');
   if (itemForm) {
     itemForm.addEventListener('submit', async function(e) {
@@ -266,20 +301,20 @@ function setupEvents() {
           showToast('✅ Creado', 'success');
         }
         
-        if (modal) { 
-          modal.classList.add('hidden'); 
-          modal.style.display = 'none'; 
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.style.display = 'none';
         }
         loadInventory();
-      } catch (err) { 
+      } catch(err) {
         var itemError = document.getElementById('item-error');
         if (itemError) itemError.textContent = 'Error: ' + err.message;
-        showToast('Error: ' + err.message, 'error'); 
+        showToast('Error: ' + err.message, 'error');
       }
     });
   }
   
-  // Prestamo form
+  // FORM PRÉSTAMO
   var prestamoForm = document.getElementById('prestamo-form');
   if (prestamoForm) {
     prestamoForm.addEventListener('submit', async function(e) {
@@ -327,7 +362,7 @@ function setupEvents() {
           created_at: new Date().toISOString()
         };
         
-        var result = await App.supabase.from('prestamos').insert([prestamoData]).select().single();
+        await App.supabase.from('prestamos').insert([prestamoData]).select().single();
         
         if (App.isAdmin) {
           for (var j = 0; j < items.length; j++) {
@@ -348,15 +383,15 @@ function setupEvents() {
         }
         loadPrestamos();
         loadDashboard();
-      } catch (err) { 
+      } catch(err) {
         var prestamoError = document.getElementById('prestamo-error');
         if (prestamoError) prestamoError.textContent = err.message;
-        showToast('Error: ' + err.message, 'error'); 
+        showToast('Error: ' + err.message, 'error');
       }
     });
   }
   
-  // Miembro form
+  // FORM MIEMBRO
   var miembroForm = document.getElementById('miembro-form');
   if (miembroForm) {
     miembroForm.addEventListener('submit', async function(e) {
@@ -374,32 +409,29 @@ function setupEvents() {
         showToast('✅ Miembro creado', 'success');
         this.reset();
         loadMembers();
-      } catch (err) { showToast('Error: ' + err.message, 'error'); }
+      } catch(err) {
+        showToast('Error: ' + err.message, 'error');
+      }
     });
   }
   
-  console.log("✅ Event listeners configurados");
+  console.log('✅ Eventos configurados');
 }
 
+// ============================================
+// LOGIN
+// ============================================
 function handleLogin() {
   var username = document.getElementById('username').value.trim().toLowerCase();
   var password = document.getElementById('password').value;
   
-  // Verificar admin local
-  var master = null;
   for (var i = 0; i < ADMIN_USERS.length; i++) {
     if (ADMIN_USERS[i].username === username && ADMIN_USERS[i].password === password) {
-      master = ADMIN_USERS[i];
-      break;
+      loginSuccess(ADMIN_USERS[i]);
+      return;
     }
   }
   
-  if (master) {
-    loginSuccess(master);
-    return;
-  }
-  
-  // Buscar en base de datos
   if (!App.supabase) {
     showToast('❌ Sin conexión', 'error');
     return;
@@ -419,7 +451,7 @@ function handleLogin() {
 }
 
 function loginSuccess(user) {
-  console.log("🔐 Login:", user);
+  console.log('🔐 Login:', user);
   App.user = user;
   App.isAdmin = user.rol === 'administrador';
   
@@ -427,9 +459,7 @@ function loginSuccess(user) {
   document.getElementById('app-section').style.display = 'block';
   
   var userDisplay = document.getElementById('user-display');
-  if (userDisplay) {
-    userDisplay.textContent = user.nombre.split(' ')[0];
-  }
+  if (userDisplay) userDisplay.textContent = user.nombre.split(' ')[0];
   
   var badge = document.getElementById('role-badge');
   if (badge) {
@@ -440,8 +470,7 @@ function loginSuccess(user) {
   updateAdminUI();
   loadDashboard();
   
-  var views = document.querySelectorAll('.view');
-  views.forEach(function(v) { 
+  document.querySelectorAll('.view').forEach(function(v) { 
     v.classList.remove('active'); 
     v.hidden = true; 
   });
@@ -454,12 +483,14 @@ function loginSuccess(user) {
 }
 
 function updateAdminUI() {
-  var adminElements = document.querySelectorAll('.admin-only');
-  adminElements.forEach(function(el) { 
+  document.querySelectorAll('.admin-only').forEach(function(el) { 
     el.hidden = !App.isAdmin; 
   });
 }
 
+// ============================================
+// DASHBOARD
+// ============================================
 async function loadDashboard() {
   if (!App.supabase) return;
   
@@ -477,14 +508,12 @@ async function loadDashboard() {
     if (statMem) statMem.textContent = memResult.count || 0;
     if (statRep) statRep.textContent = repResult.count || 0;
     
-    // Cargar préstamos count
     var loansResult = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
     if (statLoans) statLoans.textContent = loansResult.count || 0;
   } catch (err) {
     console.error("Error stats:", err);
   }
   
-  // Bitacora
   try {
     var bitsResult = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
     var bitList = document.getElementById('dashboard-bitacora-list');
@@ -501,7 +530,6 @@ async function loadDashboard() {
     console.error("Error bitacora:", err);
   }
   
-  // Reportes
   try {
     var repsResult = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
     var repList = document.getElementById('dashboard-reportes-list');
@@ -519,7 +547,6 @@ async function loadDashboard() {
     console.error("Error reportes:", err);
   }
   
-  // Préstamos
   try {
     var prestamosResult = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(5);
     var prestamosList = document.getElementById('dashboard-prestamos-list');
@@ -537,7 +564,6 @@ async function loadDashboard() {
     console.error("Error prestamos:", err);
   }
   
-  // Devoluciones
   try {
     var devResult = await App.supabase.from('prestamos').select('*').eq('estado', 'devuelto').order('fecha_confirmacion', { ascending: false }).limit(5);
     var devList = document.getElementById('dashboard-devoluciones-list');
@@ -556,6 +582,9 @@ async function loadDashboard() {
   }
 }
 
+// ============================================
+// BITÁCORA
+// ============================================
 async function loadBitacora() {
   if (!App.supabase) return;
   try {
@@ -575,6 +604,9 @@ async function loadBitacora() {
   }
 }
 
+// ============================================
+// REPORTES
+// ============================================
 async function loadReportes() {
   if (!App.supabase) return;
   try {
@@ -586,7 +618,7 @@ async function loadReportes() {
     
     if (result.data && result.data.length > 0) {
       container.innerHTML = result.data.map(function(r) {
-        return '<div class="report-card ' + (r.estado === 'cerrado' ? 'closed' : '') + '"><div class="report-header"><span class="report-urgencia" style="background:' + colors[r.urgencia] + '">' + r.urgencia.toUpperCase() + '</span><span class="status status-' + r.estado + '">' + r.estado + '</span></div><h4>' + r.titulo + '</h4><p>' + r.descripcion + '</p><div class="report-meta"><span>👤 ' + r.nombre_usuario + '</span><span>📁 ' + r.categoria + '</span></div>' + (App.isAdmin && r.estado !== 'cerrado' ? '<div class="report-actions"><button class="btn-primary btn-sm" onclick="closeReport(\'' + r.id + '\')">✅ Cerrar</button></div>' : '') + '</div>';
+        return '<div class="report-card ' + (r.estado === 'cerrado' ? 'closed' : '') + '"><div class="report-header"><span class="report-urgencia" style="background:' + colors[r.urgencia] + '">' + r.urgencia.toUpperCase() + '</span><span class="status status-' + r.estado + '">' + r.estado + '</span></div><h4>' + r.titulo + '</h4><p>' + r.descripcion + '</p><div class="report-meta"><span> ' + r.nombre_usuario + '</span><span>📁 ' + r.categoria + '</span></div>' + (App.isAdmin && r.estado !== 'cerrado' ? '<div class="report-actions"><button class="btn-primary btn-sm" onclick="closeReport(\'' + r.id + '\')">✅ Cerrar</button></div>' : '') + '</div>';
       }).join('');
     } else {
       container.innerHTML = '<p>Sin reportes</p>';
@@ -596,6 +628,9 @@ async function loadReportes() {
   }
 }
 
+// ============================================
+// INVENTARIO
+// ============================================
 async function loadInventory() {
   if (!App.supabase) return;
   try {
@@ -615,6 +650,9 @@ async function loadInventory() {
   }
 }
 
+// ============================================
+// MIEMBROS
+// ============================================
 async function loadMembers() {
   if (!App.supabase) return;
   try {
@@ -634,6 +672,9 @@ async function loadMembers() {
   }
 }
 
+// ============================================
+// PRÉSTAMOS
+// ============================================
 window.addPrestamoItem = async function() {
   var container = document.getElementById('prestamo-items-container');
   if (!container) return;
@@ -814,7 +855,7 @@ async function loadPrestamos() {
         pendientesSection.hidden = false;
         pendientesBody.innerHTML = pendientes.map(function(l) {
           var itemsList = l.items.map(function(i) { return i.nombre + ' (x' + i.cantidad + ')'; }).join(', ');
-          return '<tr><td><code>' + l.id + '</code></td><td>' + l.nombre_solicitante + '</td><td>' + itemsList + '</td><td>' + new Date(l.fecha_prestamo).toLocaleDateString() + '</td><td>' + new Date(l.fecha_devolucion).toLocaleDateString() + '</td><td><button class="btn-sm btn-success" onclick="authorizeLoan(\'' + l.id + '\', true)">✅ Autorizar</button><button class="btn-sm btn-danger" onclick="authorizeLoan(\'' + l.id + '\', false)">❌ Denegar</button></td></tr>';
+          return '<tr><td><code>' + l.id + '</code></td><td>' + l.nombre_solicitante + '</td><td>' + itemsList + '</td><td>' + new Date(l.fecha_prestamo).toLocaleDateString() + '</td><td>' + new Date(l.fecha_devolucion).toLocaleDateString() + '</td><td><button class="btn-sm" onclick="authorizeLoan(\'' + l.id + '\', true)">✅ Autorizar</button> <button class="btn-sm" onclick="authorizeLoan(\'' + l.id + '\', false)">❌ Denegar</button></td></tr>';
         }).join('');
       } else {
         pendientesSection.hidden = true;
@@ -827,7 +868,7 @@ async function loadPrestamos() {
       devolucionesPendientes.forEach(function(l) {
         var row = document.createElement('tr');
         var itemsList = l.items.map(function(i) { return i.nombre + ' (x' + i.cantidad + ')'; }).join(', ');
-        row.innerHTML = '<td><code>' + l.id + '</code></td><td>' + itemsList + '</td><td>' + new Date(l.fecha_prestamo).toLocaleDateString() + '</td><td>' + new Date(l.fecha_devolucion).toLocaleDateString() + '</td><td><span class="status status-devolucion_pendiente">⏳ Devolución Pendiente</span></td><td><button class="btn-sm btn-success" onclick="confirmReturn(\'' + l.id + '\')">✅ Confirmar Devolución</button></td>';
+        row.innerHTML = '<td><code>' + l.id + '</code></td><td>' + itemsList + '</td><td>' + new Date(l.fecha_prestamo).toLocaleDateString() + '</td><td>' + new Date(l.fecha_devolucion).toLocaleDateString() + '</td><td><span class="status status-devolucion_pendiente">⏳ Devolución Pendiente</span></td><td><button class="btn-sm" onclick="confirmReturn(\'' + l.id + '\')">✅ Confirmar Devolución</button></td>';
         tbody.appendChild(row);
       });
     }
@@ -837,6 +878,9 @@ async function loadPrestamos() {
   }
 }
 
+// ============================================
+// FUNCIONES GLOBALES
+// ============================================
 window.editItem = async function(id) {
   if (!App.supabase) return;
   console.log("✏️ Editando:", id);
