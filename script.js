@@ -9,20 +9,32 @@ const ADMIN_USERS = [
 
 let App = { user: null, isAdmin: false, supabase: null };
 
+function hideLoader() {
+  const loader = document.getElementById('loading-overlay');
+  if (loader) {
+    loader.style.display = 'none';
+    loader.style.visibility = 'hidden';
+    loader.style.opacity = '0';
+    loader.style.pointerEvents = 'none';
+    loader.style.zIndex = '-1';
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    const loader = document.getElementById('loading-overlay');
-    if (loader) loader.style.display = 'none';
-  }, 500);
-  
+  // Ocultar loader inmediatamente y también con delay como respaldo
+  hideLoader();
+  setTimeout(hideLoader, 300);
+  setTimeout(hideLoader, 800);
+  setTimeout(hideLoader, 1500);
+
   if (window.supabase) {
     App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log("✅ Supabase conectado");
   }
-  
+
   document.getElementById('login-section').style.display = 'flex';
   document.getElementById('app-section').style.display = 'none';
-  
+
   setupEvents();
 });
 
@@ -31,13 +43,13 @@ function setupEvents() {
     e.preventDefault();
     const u = document.getElementById('username').value.trim().toLowerCase();
     const p = document.getElementById('password').value;
-    
+
     const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
     if (master) {
       loginSuccess(master);
       return;
     }
-    
+
     const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
     if (error || !data) {
       showToast('❌ Credenciales incorrectas', 'error');
@@ -45,7 +57,7 @@ function setupEvents() {
       loginSuccess(data);
     }
   });
-  
+
   document.getElementById('logout-btn')?.addEventListener('click', () => {
     App.user = null;
     App.isAdmin = false;
@@ -74,16 +86,16 @@ function setupEvents() {
     sidebarOverlay.style.display = 'none';
   });
   // =============================================
-  
+
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const view = e.currentTarget.dataset.view;
       if (!view) return;
       if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) return showToast('🔐 Solo administradores', 'error');
-      
+
       document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      
+
       const target = document.getElementById('view-' + view);
       if (target) { target.classList.add('active'); target.hidden = false; }
       e.currentTarget.classList.add('active');
@@ -91,7 +103,7 @@ function setupEvents() {
       // Cerrar sidebar en móvil al navegar
       sidebar.classList.remove('open');
       sidebarOverlay.style.display = 'none';
-      
+
       if (view === 'dashboard') loadDashboard();
       if (view === 'inventario') loadInventory();
       if (view === 'bitacora') loadBitacora();
@@ -100,7 +112,7 @@ function setupEvents() {
       if (view === 'prestamos' && App.isAdmin) loadPrestamos();
     });
   });
-  
+
   document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -118,7 +130,7 @@ function setupEvents() {
       loadBitacora(); loadDashboard();
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
-  
+
   document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -138,14 +150,14 @@ function setupEvents() {
       loadReportes(); loadDashboard();
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
-  
+
   document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
     const { data } = await App.supabase.from('inventario').select('*');
     if (!data?.length) return showToast('Sin datos para exportar', 'warning');
-    
+
     const headers = Object.keys(data[0]);
     let csvContent = headers.join(',') + '\n';
-    
+
     data.forEach(row => {
       const values = headers.map(header => {
         const val = row[header];
@@ -153,7 +165,7 @@ function setupEvents() {
       });
       csvContent += values.join(',') + '\n';
     });
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -163,15 +175,15 @@ function setupEvents() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showToast('📦 Exportado como CSV', 'success');
   });
-  
+
   const modal = document.getElementById('item-modal');
   document.querySelector('.modal-close')?.addEventListener('click', () => {
     if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
   });
-  
+
   document.getElementById('btn-add-item')?.addEventListener('click', () => {
     if (!modal) return showToast('Error: Modal no encontrado', 'error');
     document.getElementById('modal-title').textContent = '➕ Nuevo Equipo';
@@ -181,12 +193,12 @@ function setupEvents() {
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
   });
-  
+
   document.getElementById('item-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
       let id = document.getElementById('item-id').value;
-      
+
       const item = {
         nombre: document.getElementById('item-nombre').value,
         numero_serie: document.getElementById('item-serie').value || 'N/A',
@@ -198,7 +210,7 @@ function setupEvents() {
         comentarios: document.getElementById('item-comentarios').value,
         foto_url: document.getElementById('item-foto').value
       };
-      
+
       if (id) {
         await App.supabase.from('inventario').update(item).eq('id', id);
         showToast('✅ Actualizado', 'success');
@@ -207,12 +219,12 @@ function setupEvents() {
         id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
         item.id = id;
         item.created_at = new Date().toISOString();
-        
+
         const { error } = await App.supabase.from('inventario').insert([item]);
         if (error) throw error;
         showToast('✅ Creado', 'success');
       }
-      
+
       if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
       loadInventory();
     } catch (err) {
@@ -220,51 +232,51 @@ function setupEvents() {
       showToast('Error: ' + err.message, 'error');
     }
   });
-  
+
   document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     try {
       const items = [];
       const itemRows = document.querySelectorAll('.prestamo-item-row');
-      
+
       for (let row of itemRows) {
         const itemId = row.querySelector('.prestamo-item-select').value;
         const cantidad = parseInt(row.querySelector('.prestamo-cantidad').value);
-        
+
         if (itemId && cantidad > 0) {
           const { data: itemData } = await App.supabase
             .from('inventario')
             .select('nombre, cantidad')
             .eq('id', itemId)
             .single();
-          
+
           if (!itemData) {
             throw new Error(`Item no encontrado`);
           }
-          
+
           if (cantidad > itemData.cantidad) {
             throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}, Solicitado: ${cantidad}`);
           }
-          
+
           items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
         }
       }
-      
+
       if (items.length === 0) {
         throw new Error('Debes seleccionar al menos un item');
       }
-      
+
       const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
       const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
       const motivo = document.getElementById('prestamo-motivo').value;
-      
+
       if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
         throw new Error('La fecha de devolución debe ser posterior a la fecha de préstamo');
       }
-      
+
       const estado = App.isAdmin ? 'autorizado' : 'pendiente';
-      
+
       const prestamoData = {
         usuario_id: App.user.id,
         nombre_solicitante: App.user.nombre_completo || App.user.username,
@@ -276,15 +288,15 @@ function setupEvents() {
         autorizado_por: App.isAdmin ? App.user.id : null,
         created_at: new Date().toISOString()
       };
-      
+
       const { data: prestamo, error } = await App.supabase
         .from('prestamos')
         .insert([prestamoData])
         .select()
         .single();
-      
+
       if (error) throw error;
-      
+
       if (App.isAdmin) {
         for (let item of items) {
           await App.supabase.rpc('descontar_stock', {
@@ -296,7 +308,7 @@ function setupEvents() {
       } else {
         showToast('📋 Solicitud enviada. Espera autorización del administrador', 'success');
       }
-      
+
       e.target.reset();
       document.getElementById('prestamo-items-container').innerHTML = `
         <div class="prestamo-item-row">
@@ -309,13 +321,13 @@ function setupEvents() {
       `;
       loadPrestamos();
       loadDashboard();
-      
+
     } catch (err) {
       document.getElementById('prestamo-error').textContent = err.message;
       showToast('Error: ' + err.message, 'error');
     }
   });
-  
+
   document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
@@ -340,18 +352,18 @@ function setupEvents() {
 function loginSuccess(user) {
   App.user = user;
   App.isAdmin = user.rol === 'administrador';
-  
+
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('app-section').style.display = 'block';
   document.getElementById('user-display').textContent = user.nombre.split(' ')[0];
-  
+
   const badge = document.getElementById('role-badge');
   badge.textContent = user.rol;
   badge.className = App.isAdmin ? 'role-badge admin' : 'role-badge';
-  
+
   updateAdminUI();
   loadDashboard();
-  
+
   document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
   const dashboard = document.getElementById('view-dashboard');
   if (dashboard) { dashboard.classList.add('active'); dashboard.hidden = false; }
@@ -363,28 +375,28 @@ function updateAdminUI() {
 
 async function loadDashboard() {
   if (!App.supabase) return;
-  
+
   const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
   const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
   const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
-  
+
   document.getElementById('stat-inventory').textContent = inv || 0;
   document.getElementById('stat-members').textContent = mem || 0;
   document.getElementById('stat-reports').textContent = rep || 0;
-  
+
   try {
     const { data: bits, error: bitError } = await App.supabase
       .from('bitacoras')
       .select('*')
       .order('fecha', { ascending: false })
       .limit(5);
-    
+
     if (bitError) throw bitError;
-    
+
     const bitList = document.getElementById('dashboard-bitacora-list');
     if (bitList) {
       if (bits && bits.length > 0) {
-        bitList.innerHTML = bits.map(b => 
+        bitList.innerHTML = bits.map(b =>
           `<li class="activity-item">
             <span class="time">${new Date(b.fecha).toLocaleString()}</span>
             <strong>${b.titulo || 'Sin título'}</strong>
@@ -400,22 +412,22 @@ async function loadDashboard() {
     const bitList = document.getElementById('dashboard-bitacora-list');
     if (bitList) bitList.innerHTML = '<li class="text-muted">Error al cargar</li>';
   }
-  
+
   try {
     const { data: reps, error: repError } = await App.supabase
       .from('reportes')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(5);
-    
+
     if (repError) throw repError;
-    
+
     const repList = document.getElementById('dashboard-reportes-list');
     if (repList) {
       const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
-      
+
       if (reps && reps.length > 0) {
-        repList.innerHTML = reps.map(r => 
+        repList.innerHTML = reps.map(r =>
           `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}">
             <span class="time">${new Date(r.created_at).toLocaleString()}</span>
             <strong style="color:${colors[r.urgencia] || '#00d4ff'}">[${(r.urgencia || 'N/A').toUpperCase()}]</strong>
@@ -432,21 +444,21 @@ async function loadDashboard() {
     const repList = document.getElementById('dashboard-reportes-list');
     if (repList) repList.innerHTML = '<li class="text-muted">Error al cargar</li>';
   }
-  
+
   try {
     const { count: loans } = await App.supabase
       .from('prestamos')
       .select('*', { count: 'exact', head: true })
       .in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
     document.getElementById('stat-loans').textContent = loans || 0;
-    
+
     const { data: prestamos } = await App.supabase
       .from('prestamos')
       .select('*')
       .eq('estado', 'autorizado')
       .order('created_at', { ascending: false })
       .limit(5);
-    
+
     const prestamosList = document.getElementById('dashboard-prestamos-list');
     if (prestamosList) {
       if (prestamos && prestamos.length > 0) {
@@ -467,7 +479,7 @@ async function loadDashboard() {
   } catch (err) {
     console.error("Error cargando préstamos:", err);
   }
-  
+
   try {
     const { data: devoluciones } = await App.supabase
       .from('prestamos')
@@ -475,7 +487,7 @@ async function loadDashboard() {
       .eq('estado', 'devuelto')
       .order('fecha_confirmacion', { ascending: false })
       .limit(5);
-    
+
     const devolucionesList = document.getElementById('dashboard-devoluciones-list');
     if (devolucionesList) {
       if (devoluciones && devoluciones.length > 0) {
@@ -503,7 +515,7 @@ async function loadBitacora() {
     const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
     const tbody = document.getElementById('bitacora-body');
     if (!tbody) return;
-    
+
     if (data && data.length > 0) {
       tbody.innerHTML = data.map(b => `
         <tr>
@@ -528,9 +540,9 @@ async function loadReportes() {
     const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
     const container = document.getElementById('reportes-list');
     if (!container) return;
-    
+
     const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
-    
+
     if (data && data.length > 0) {
       container.innerHTML = data.map(r => `
         <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
@@ -544,7 +556,7 @@ async function loadReportes() {
             <span>👤 ${r.nombre_usuario}</span>
             <span>📁 ${r.categoria}</span>
           </div>
-          ${App.isAdmin && r.estado !== 'cerrado' ? 
+          ${App.isAdmin && r.estado !== 'cerrado' ?
             `<div class="report-actions"><button class="btn-primary btn-sm" onclick="closeReport('${r.id}')">✅ Cerrar</button></div>` : ''}
         </div>
       `).join('');
@@ -561,7 +573,7 @@ async function loadInventory() {
     const { data } = await App.supabase.from('inventario').select('*');
     const tbody = document.getElementById('inventory-body');
     if (!tbody) return;
-    
+
     if (data && data.length > 0) {
       tbody.innerHTML = data.map(i => `
         <tr>
@@ -592,7 +604,7 @@ async function loadMembers() {
     const { data } = await App.supabase.from('usuarios').select('*').order('username');
     const tbody = document.getElementById('miembros-body');
     if (!tbody) return;
-    
+
     if (data && data.length > 0) {
       tbody.innerHTML = data.map(m => `
         <tr>
@@ -601,7 +613,7 @@ async function loadMembers() {
           <td>${m.nombre_completo || '-'}</td>
           <td><span class="role-badge ${m.rol === 'administrador' ? 'admin' : ''}">${m.rol}</span></td>
           <td>${m.area || '-'}</td>
-          <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? 
+          <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ?
             `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : '🔒'}</td>
         </tr>
       `).join('');
@@ -625,7 +637,7 @@ window.addPrestamoItem = async function() {
     <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
   `;
   container.appendChild(newRow);
-  
+
   await loadPrestamoItems(newRow.querySelector('.prestamo-item-select'));
 };
 
@@ -644,9 +656,9 @@ async function loadPrestamoItems(selectElement) {
       .from('inventario')
       .select('id, nombre, cantidad')
       .gt('cantidad', 0);
-    
+
     if (data && data.length > 0) {
-      selectElement.innerHTML = '<option value="">Seleccionar item...</option>' + 
+      selectElement.innerHTML = '<option value="">Seleccionar item...</option>' +
         data.map(item => `<option value="${item.id}" data-stock="${item.cantidad}">${item.nombre} (Disp: ${item.cantidad})</option>`).join('');
     } else {
       selectElement.innerHTML = '<option value="">Sin items disponibles</option>';
@@ -659,7 +671,7 @@ async function loadPrestamoItems(selectElement) {
 
 window.authorizeLoan = async function(loanId, authorize) {
   if (!confirm(`${authorize ? 'AUTORIZAR' : 'DENEGAR'} este préstamo?`)) return;
-  
+
   try {
     if (authorize) {
       const { data: prestamo } = await App.supabase
@@ -667,20 +679,20 @@ window.authorizeLoan = async function(loanId, authorize) {
         .select('items')
         .eq('id', loanId)
         .single();
-      
+
       for (let item of prestamo.items) {
         await App.supabase.rpc('descontar_stock', {
           p_item_id: item.item_id,
           p_cantidad: item.cantidad
         });
       }
-      
+
       await App.supabase.from('prestamos').update({
         estado: 'autorizado',
         autorizado_por: App.user.id,
         fecha_autorizacion: new Date().toISOString()
       }).eq('id', loanId);
-      
+
       showToast('✅ Préstamo autorizado', 'success');
     } else {
       await App.supabase.from('prestamos').update({
@@ -688,10 +700,10 @@ window.authorizeLoan = async function(loanId, authorize) {
         autorizado_por: App.user.id,
         fecha_autorizacion: new Date().toISOString()
       }).eq('id', loanId);
-      
+
       showToast('❌ Préstamo denegado', 'success');
     }
-    
+
     loadPrestamos();
     loadDashboard();
   } catch (err) {
@@ -701,13 +713,13 @@ window.authorizeLoan = async function(loanId, authorize) {
 
 window.requestReturn = async function(loanId) {
   if (!confirm('¿Solicitar devolución de este préstamo?')) return;
-  
+
   try {
     await App.supabase.from('prestamos').update({
       estado: 'devolucion_pendiente',
       fecha_devolucion_real: new Date().toISOString()
     }).eq('id', loanId);
-    
+
     showToast('📋 Devolución solicitada. Espera confirmación del administrador', 'success');
     loadPrestamos();
     loadDashboard();
@@ -718,27 +730,27 @@ window.requestReturn = async function(loanId) {
 
 window.confirmReturn = async function(loanId) {
   if (!confirm('¿Confirmar que los items fueron devueltos en buen estado?')) return;
-  
+
   try {
     const { data: prestamo } = await App.supabase
       .from('prestamos')
       .select('items')
       .eq('id', loanId)
       .single();
-    
+
     for (let item of prestamo.items) {
       await App.supabase.rpc('regresar_stock', {
         p_item_id: item.item_id,
         p_cantidad: item.cantidad
       });
     }
-    
+
     await App.supabase.from('prestamos').update({
       estado: 'devuelto',
       confirmado_por: App.user.id,
       fecha_confirmacion: new Date().toISOString()
     }).eq('id', loanId);
-    
+
     showToast('✅ Devolución confirmada', 'success');
     loadPrestamos();
     loadInventory();
@@ -751,41 +763,41 @@ window.confirmReturn = async function(loanId) {
 async function loadPrestamos() {
   try {
     console.log("🔄 Cargando préstamos...");
-    
+
     const itemSelects = document.querySelectorAll('.prestamo-item-select');
     for (let select of itemSelects) {
       await loadPrestamoItems(select);
     }
-    
+
     let query;
     if (App.isAdmin) {
       query = App.supabase.from('prestamos').select('*');
     } else {
       query = App.supabase.from('prestamos').select('*').eq('usuario_id', App.user.id);
     }
-    
+
     const { data } = await query.order('created_at', { ascending: false });
-    
+
     const tbody = document.getElementById('prestamos-body');
     const pendientesBody = document.getElementById('prestamos-pendientes-body');
     const pendientesSection = document.getElementById('prestamos-pendientes-section');
-    
+
     if (tbody) {
       if (data && data.length > 0) {
-        const misPrestamos = data.filter(p => 
+        const misPrestamos = data.filter(p =>
           App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente'
         );
-        
+
         tbody.innerHTML = misPrestamos.map(l => {
           const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
           let acciones = '';
-          
+
           if (l.estado === 'autorizado') {
             acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
           } else if (l.estado === 'devolucion_pendiente') {
             acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
           }
-          
+
           return `
             <tr>
               <td><code>${l.id}</code></td>
@@ -797,7 +809,7 @@ async function loadPrestamos() {
             </tr>
           `;
         }).join('');
-        
+
         if (misPrestamos.length === 0) {
           tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
         }
@@ -805,10 +817,10 @@ async function loadPrestamos() {
         tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
       }
     }
-    
+
     if (App.isAdmin && pendientesBody && pendientesSection) {
       const pendientes = data.filter(p => p.estado === 'pendiente');
-      
+
       if (pendientes.length > 0) {
         pendientesSection.hidden = false;
         pendientesBody.innerHTML = pendientes.map(l => {
@@ -831,10 +843,10 @@ async function loadPrestamos() {
         pendientesSection.hidden = true;
       }
     }
-    
+
     if (App.isAdmin && tbody) {
       const devolucionesPendientes = data.filter(p => p.estado === 'devolucion_pendiente');
-      
+
       devolucionesPendientes.forEach(l => {
         const row = document.createElement('tr');
         const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
@@ -849,7 +861,7 @@ async function loadPrestamos() {
         tbody.appendChild(row);
       });
     }
-    
+
   } catch (err) {
     console.error("Error loadPrestamos:", err);
   }
@@ -857,26 +869,26 @@ async function loadPrestamos() {
 
 window.editItem = async function(id) {
   console.log("✏️ Editando ID:", id);
-  
+
   if (!id) {
     return showToast('Error: ID no válido', 'error');
   }
-  
+
   try {
     const { data: item, error } = await App.supabase
       .from('inventario')
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error || !item) {
       console.error("❌ Error al buscar:", error);
       return showToast('Item no encontrado', 'error');
     }
-    
+
     const modal = document.getElementById('item-modal');
     if (!modal) return showToast('Modal no encontrado', 'error');
-    
+
     document.getElementById('modal-title').textContent = '✏️ Editar: ' + item.nombre;
     document.getElementById('item-id').value = item.id;
     document.getElementById('item-nombre').value = item.nombre || '';
@@ -889,7 +901,7 @@ window.editItem = async function(id) {
     document.getElementById('item-comentarios').value = item.comentarios || '';
     document.getElementById('item-foto').value = item.foto_url || '';
     document.getElementById('item-error').textContent = '';
-    
+
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
     console.log("✅ Modal abierto");
