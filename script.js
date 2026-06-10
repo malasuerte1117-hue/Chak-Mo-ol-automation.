@@ -7,87 +7,77 @@ const ADMIN_USERS = [
   { username: 'sixto', password: 'sixto2026', nombre: 'Sixto', rol: 'administrador', id: 2 }
 ];
 
-let App = { user: null, isAdmin: false, supabase: null, inventoryData: [] };
+let App = { user: null, isAdmin: false, supabase: null };
 
-// INICIALIZACIÓN SIMPLE - SIN LOADER
 window.addEventListener('DOMContentLoaded', () => {
-  console.log("✅ App cargada");
+  setTimeout(() => {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) loader.style.display = 'none';
+  }, 500);
   
-  // Asegurar que el login se vea
+  if (window.supabase) {
+    App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    console.log("✅ Supabase conectado");
+  }
+  
   document.getElementById('login-section').style.display = 'flex';
   document.getElementById('app-section').style.display = 'none';
-  
-  // Inicializar Supabase
-  try {
-    if (window.supabase) {
-      App.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      console.log("✅ Supabase listo");
-    }
-  } catch (e) {
-    console.error("❌ Error Supabase:", e);
-  }
   
   setupEvents();
 });
 
 function setupEvents() {
-  // Toggle sidebar en mobile
-  document.getElementById('menu-toggle')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.getElementById('sidebar')?.classList.toggle('open');
-  });
-  
-  // Cerrar sidebar al hacer click fuera
-  document.getElementById('main-content')?.addEventListener('click', () => {
-    if (window.innerWidth < 1024) document.getElementById('sidebar')?.classList.remove('open');
-  });
-  
-  // Login Form
   document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const u = document.getElementById('username').value.trim().toLowerCase();
     const p = document.getElementById('password').value;
-    const errorDiv = document.getElementById('login-error');
-    if (errorDiv) errorDiv.textContent = '';
     
-    // Check admins locales
     const master = ADMIN_USERS.find(a => a.username === u && a.password === p);
-    if (master) { loginSuccess(master); return; }
+    if (master) {
+      loginSuccess(master);
+      return;
+    }
     
-    // Check DB
-    if (!App.supabase) return showToast('❌ Sin conexión a base de datos', 'error');
-    
-    try {
-      const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
-      if (error || !data) {
-        if (errorDiv) errorDiv.textContent = ' Credenciales incorrectas';
-        showToast('❌ Usuario o contraseña incorrectos', 'error');
-      } else {
-        loginSuccess(data);
-      }
-    } catch (err) {
-      if (errorDiv) errorDiv.textContent = '❌ Error de conexión';
-      showToast('❌ Error de conexión', 'error');
+    const { data, error } = await App.supabase.from('usuarios').select('*').eq('username', u).eq('password', p).single();
+    if (error || !data) {
+      showToast('❌ Credenciales incorrectas', 'error');
+    } else {
+      loginSuccess(data);
     }
   });
   
-  // Logout
   document.getElementById('logout-btn')?.addEventListener('click', () => {
     App.user = null;
     App.isAdmin = false;
     document.getElementById('app-section').style.display = 'none';
     document.getElementById('login-section').style.display = 'flex';
   });
+
+  // === NUEVO: BOTÓN MENÚ HAMBURGUESA (MÓVIL) ===
+  document.getElementById('menu-toggle')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.classList.toggle('open');
+    }
+  });
+
+  // === NUEVO: CERRAR SIDEBAR AL HACER CLIC FUERA (MÓVIL) ===
+  document.addEventListener('click', (e) => {
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menu-toggle');
+    if (sidebar && menuBtn && window.innerWidth < 1024) {
+      if (!sidebar.contains(e.target) && !menuBtn.contains(e.target) && sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+      }
+    }
+  });
   
-  // Navegación
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const view = e.currentTarget.dataset.view;
       if (!view) return;
-      if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) {
-        showToast('🔐 Solo administradores', 'error');
-        return;
-      }
+      if (e.currentTarget.classList.contains('admin-only') && !App.isAdmin) return showToast('🔐 Solo administradores', 'error');
       
       document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -96,7 +86,11 @@ function setupEvents() {
       if (target) { target.classList.add('active'); target.hidden = false; }
       e.currentTarget.classList.add('active');
       
-      if (window.innerWidth < 1024) document.getElementById('sidebar')?.classList.remove('open');
+      // === NUEVO: CERRAR SIDEBAR EN MÓVIL AL SELECCIONAR OPCIÓN ===
+      if (window.innerWidth < 1024) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('open');
+      }
       
       if (view === 'dashboard') loadDashboard();
       if (view === 'inventario') loadInventory();
@@ -107,55 +101,8 @@ function setupEvents() {
     });
   });
   
-  // 🔍 EVENTOS DE BÚSQUEDA EN INVENTARIO
-  const searchInput = document.getElementById('inventory-search');
-  const searchClear = document.getElementById('search-clear');
-  const searchReset = document.getElementById('search-reset');
-  const noResults = document.getElementById('inventory-no-results');
-  
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const term = e.target.value.toLowerCase().trim();
-      filterInventory(term);
-      if (searchClear) searchClear.hidden = term === '';
-    });
-    
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        searchInput.value = '';
-        filterInventory('');
-        if (searchClear) searchClear.hidden = true;
-        searchInput.blur();
-      }
-    });
-  }
-  
-  if (searchClear) {
-    searchClear.addEventListener('click', () => {
-      if (searchInput) {
-        searchInput.value = '';
-        filterInventory('');
-        searchClear.hidden = true;
-        searchInput.focus();
-      }
-    });
-  }
-  
-  if (searchReset) {
-    searchReset.addEventListener('click', () => {
-      if (searchInput) {
-        searchInput.value = '';
-        filterInventory('');
-        if (searchClear) searchClear.hidden = true;
-        if (noResults) noResults.hidden = true;
-      }
-    });
-  }
-  
-  // Bitácora Submit
   document.getElementById('bitacora-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     try {
       const { error } = await App.supabase.from('bitacoras').insert([{
         usuario_id: App.user.id,
@@ -172,10 +119,8 @@ function setupEvents() {
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
   
-  // Reportes Submit
   document.getElementById('reporte-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     try {
       const { error } = await App.supabase.from('reportes').insert([{
         usuario_id: App.user.id,
@@ -194,14 +139,13 @@ function setupEvents() {
     } catch (err) { showToast('Error: ' + err.message, 'error'); }
   });
   
-  // Exportar Excel
   document.getElementById('btn-export-excel')?.addEventListener('click', async () => {
-    if (!App.supabase) return showToast(' Sin conexión', 'error');
     const { data } = await App.supabase.from('inventario').select('*');
     if (!data?.length) return showToast('Sin datos para exportar', 'warning');
     
     const headers = Object.keys(data[0]);
     let csvContent = headers.join(',') + '\n';
+    
     data.forEach(row => {
       const values = headers.map(header => {
         const val = row[header];
@@ -219,20 +163,13 @@ function setupEvents() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    showToast(' Exportado como CSV', 'success');
+    
+    showToast('📦 Exportado como CSV', 'success');
   });
   
-  // Modal Inventario
   const modal = document.getElementById('item-modal');
   document.querySelector('.modal-close')?.addEventListener('click', () => {
     if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
-  });
-  
-  modal?.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-      modal.style.display = 'none';
-    }
   });
   
   document.getElementById('btn-add-item')?.addEventListener('click', () => {
@@ -247,9 +184,9 @@ function setupEvents() {
   
   document.getElementById('item-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     try {
       let id = document.getElementById('item-id').value;
+      
       const item = {
         nombre: document.getElementById('item-nombre').value,
         numero_serie: document.getElementById('item-serie').value || 'N/A',
@@ -270,10 +207,12 @@ function setupEvents() {
         id = 'LAB-' + cleanName + '-' + Date.now().toString().slice(-6);
         item.id = id;
         item.created_at = new Date().toISOString();
+        
         const { error } = await App.supabase.from('inventario').insert([item]);
         if (error) throw error;
         showToast('✅ Creado', 'success');
       }
+      
       if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
       loadInventory();
     } catch (err) {
@@ -282,32 +221,50 @@ function setupEvents() {
     }
   });
   
-  // Préstamos Submit
   document.getElementById('prestamo-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
+    
     try {
       const items = [];
       const itemRows = document.querySelectorAll('.prestamo-item-row');
+      
       for (let row of itemRows) {
         const itemId = row.querySelector('.prestamo-item-select').value;
         const cantidad = parseInt(row.querySelector('.prestamo-cantidad').value);
+        
         if (itemId && cantidad > 0) {
-          const { data: itemData } = await App.supabase.from('inventario').select('nombre, cantidad').eq('id', itemId).single();
-          if (!itemData) throw new Error(`Item no encontrado`);
-          if (cantidad > itemData.cantidad) throw new Error(`Stock insuficiente`);
+          const { data: itemData } = await App.supabase
+            .from('inventario')
+            .select('nombre, cantidad')
+            .eq('id', itemId)
+            .single();
+          
+          if (!itemData) {
+            throw new Error(`Item no encontrado`);
+          }
+          
+          if (cantidad > itemData.cantidad) {
+            throw new Error(`Stock insuficiente para "${itemData.nombre}". Disponible: ${itemData.cantidad}, Solicitado: ${cantidad}`);
+          }
+          
           items.push({ item_id: itemId, cantidad, nombre: itemData.nombre });
         }
       }
-      if (items.length === 0) throw new Error('Debes seleccionar al menos un item');
+      
+      if (items.length === 0) {
+        throw new Error('Debes seleccionar al menos un item');
+      }
       
       const fechaInicio = document.getElementById('prestamo-fecha-inicio').value;
       const fechaDevolucion = document.getElementById('prestamo-fecha-devolucion').value;
       const motivo = document.getElementById('prestamo-motivo').value;
       
-      if (new Date(fechaInicio) > new Date(fechaDevolucion)) throw new Error('Fecha inválida');
+      if (new Date(fechaInicio) > new Date(fechaDevolucion)) {
+        throw new Error('La fecha de devolución debe ser posterior a la fecha de préstamo');
+      }
       
       const estado = App.isAdmin ? 'autorizado' : 'pendiente';
+      
       const prestamoData = {
         usuario_id: App.user.id,
         nombre_solicitante: App.user.nombre_completo || App.user.username,
@@ -320,37 +277,47 @@ function setupEvents() {
         created_at: new Date().toISOString()
       };
       
-      const { data: prestamo, error } = await App.supabase.from('prestamos').insert([prestamoData]).select().single();
+      const { data: prestamo, error } = await App.supabase
+        .from('prestamos')
+        .insert([prestamoData])
+        .select()
+        .single();
+      
       if (error) throw error;
       
       if (App.isAdmin) {
         for (let item of items) {
-          await App.supabase.rpc('descontar_stock', { p_item_id: item.item_id, p_cantidad: item.cantidad });
+          await App.supabase.rpc('descontar_stock', {
+            p_item_id: item.item_id,
+            p_cantidad: item.cantidad
+          });
         }
-        showToast('✅ Préstamo autorizado', 'success');
+        showToast('✅ Préstamo autorizado y registrado', 'success');
       } else {
-        showToast('📋 Solicitud enviada', 'success');
+        showToast('📋 Solicitud enviada. Espera autorización del administrador', 'success');
       }
       
       e.target.reset();
       document.getElementById('prestamo-items-container').innerHTML = `
         <div class="prestamo-item-row">
-          <select class="prestamo-item-select" required><option value="">Seleccionar item...</option></select>
+          <select class="prestamo-item-select" required>
+            <option value="">Seleccionar item...</option>
+          </select>
           <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
           <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
         </div>
       `;
-      loadPrestamos(); loadDashboard();
+      loadPrestamos();
+      loadDashboard();
+      
     } catch (err) {
       document.getElementById('prestamo-error').textContent = err.message;
       showToast('Error: ' + err.message, 'error');
     }
   });
   
-  // Miembros Submit
   document.getElementById('miembro-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!App.supabase) return showToast('❌ Sin conexión', 'error');
     try {
       const { error } = await App.supabase.from('usuarios').insert([{
         username: document.getElementById('miembro-username').value.trim(),
@@ -364,7 +331,9 @@ function setupEvents() {
       showToast('✅ Miembro creado', 'success');
       e.target.reset();
       loadMembers();
-    } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    } catch (err) {
+      showToast('Error Miembros: ' + err.message, 'error');
+    }
   });
 }
 
@@ -374,7 +343,7 @@ function loginSuccess(user) {
   
   document.getElementById('login-section').style.display = 'none';
   document.getElementById('app-section').style.display = 'block';
-  document.getElementById('user-display').textContent = user.nombre?.split(' ')[0] || user.username;
+  document.getElementById('user-display').textContent = user.nombre.split(' ')[0];
   
   const badge = document.getElementById('role-badge');
   badge.textContent = user.rol;
@@ -386,282 +355,535 @@ function loginSuccess(user) {
   document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.hidden = true; });
   const dashboard = document.getElementById('view-dashboard');
   if (dashboard) { dashboard.classList.add('active'); dashboard.hidden = false; }
-  
-  showToast(`✅ Bienvenido ${user.nombre?.split(' ')[0] || user.username}`, 'success');
 }
 
 function updateAdminUI() {
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
 }
 
+// === DASHBOARD - MANTIENE BITÁCORA Y REPORTES ORIGINALES + AGREGA PRÉSTAMOS ===
 async function loadDashboard() {
   if (!App.supabase) return;
+  
+  // Cargar estadísticas
+  const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
+  const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
+  const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+  
+  document.getElementById('stat-inventory').textContent = inv || 0;
+  document.getElementById('stat-members').textContent = mem || 0;
+  document.getElementById('stat-reports').textContent = rep || 0;
+  
+  // === CARGAR BITÁCORAS RECIENTES PARA DASHBOARD (ORIGINAL - SIN CAMBIOS) ===
   try {
-    const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
-    const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
-    const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
+    const { data: bits, error: bitError } = await App.supabase
+      .from('bitacoras')
+      .select('*')
+      .order('fecha', { ascending: false })
+      .limit(5);
     
-    document.getElementById('stat-inventory').textContent = inv || 0;
-    document.getElementById('stat-members').textContent = mem || 0;
-    document.getElementById('stat-reports').textContent = rep || 0;
+    if (bitError) throw bitError;
     
-    const { data: bits } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false }).limit(5);
     const bitList = document.getElementById('dashboard-bitacora-list');
     if (bitList) {
-      bitList.innerHTML = bits && bits.length > 0 ? bits.map(b => 
-        `<li class="activity-item"><span class="time">${new Date(b.fecha).toLocaleString()}</span><strong>${b.titulo || 'Sin título'}</strong></li>`
-      ).join('') : '<li class="text-muted">Sin registros</li>';
+      if (bits && bits.length > 0) {
+        bitList.innerHTML = bits.map(b => 
+          `<li class="activity-item">
+            <span class="time">${new Date(b.fecha).toLocaleString()}</span>
+            <strong>${b.titulo || 'Sin título'}</strong>
+            <small style="color:#666;display:block;margin-top:4px">${b.actividad?.substring(0,60) || ''}${b.actividad?.length > 60 ? '...' : ''}</small>
+          </li>`
+        ).join('');
+      } else {
+        bitList.innerHTML = '<li class="text-muted">Sin registros de bitácora</li>';
+      }
     }
+  } catch (err) {
+    console.error("❌ Error cargando bitácoras:", err);
+    const bitList = document.getElementById('dashboard-bitacora-list');
+    if (bitList) bitList.innerHTML = '<li class="text-muted">Error al cargar</li>';
+  }
+  
+  // === CARGAR REPORTES RECIENTES PARA DASHBOARD (ORIGINAL - SIN CAMBIOS) ===
+  try {
+    const { data: reps, error: repError } = await App.supabase
+      .from('reportes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(5);
     
-    const { data: reps } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false }).limit(5);
+    if (repError) throw repError;
+    
     const repList = document.getElementById('dashboard-reportes-list');
     if (repList) {
       const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00cc66' };
-      repList.innerHTML = reps && reps.length > 0 ? reps.map(r => 
-        `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}"><span class="time">${new Date(r.created_at).toLocaleString()}</span><strong>${r.titulo}</strong></li>`
-      ).join('') : '<li class="text-muted">Sin reportes</li>';
+      
+      if (reps && reps.length > 0) {
+        repList.innerHTML = reps.map(r => 
+          `<li class="activity-item" style="border-left:4px solid ${colors[r.urgencia] || '#00d4ff'}">
+            <span class="time">${new Date(r.created_at).toLocaleString()}</span>
+            <strong style="color:${colors[r.urgencia] || '#00d4ff'}">[${(r.urgencia || 'N/A').toUpperCase()}]</strong>
+            <span style="color:#333"> ${r.titulo || 'Sin título'}</span>
+            ${r.estado === 'cerrado' ? '<small style="color:#28a745;margin-left:8px">✓ Cerrado</small>' : ''}
+          </li>`
+        ).join('');
+      } else {
+        repList.innerHTML = '<li class="text-muted">Sin reportes recientes</li>';
+      }
     }
-    
-    const { count: loans } = await App.supabase.from('prestamos').select('*', { count: 'exact', head: true }).in('estado', ['autorizado', 'pendiente']);
+  } catch (err) {
+    console.error("❌ Error cargando reportes:", err);
+    const repList = document.getElementById('dashboard-reportes-list');
+    if (repList) repList.innerHTML = '<li class="text-muted">Error al cargar</li>';
+  }
+  
+  // === NUEVO: CARGAR PRÉSTAMOS RECIENTES ===
+  try {
+    const { count: loans } = await App.supabase
+      .from('prestamos')
+      .select('*', { count: 'exact', head: true })
+      .in('estado', ['autorizado', 'pendiente', 'devolucion_pendiente']);
     document.getElementById('stat-loans').textContent = loans || 0;
     
-    const { data: prestamos } = await App.supabase.from('prestamos').select('*').eq('estado', 'autorizado').order('created_at', { ascending: false }).limit(5);
+    const { data: prestamos } = await App.supabase
+      .from('prestamos')
+      .select('*')
+      .eq('estado', 'autorizado')
+      .order('created_at', { ascending: false })
+      .limit(5);
+    
     const prestamosList = document.getElementById('dashboard-prestamos-list');
     if (prestamosList) {
-      prestamosList.innerHTML = prestamos && prestamos.length > 0 ? prestamos.map(p => 
-        `<li class="activity-item"><span class="time">${new Date(p.fecha_prestamo).toLocaleDateString()}</span><strong>${p.nombre_solicitante}</strong></li>`
-      ).join('') : '<li class="text-muted">Sin préstamos</li>';
+      if (prestamos && prestamos.length > 0) {
+        prestamosList.innerHTML = prestamos.map(p => {
+          const itemsText = p.items?.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') || 'Sin items';
+          return `
+            <li class="activity-item">
+              <span class="time">${new Date(p.fecha_prestamo).toLocaleDateString()}</span>
+              <strong>📤 ${p.nombre_solicitante}</strong>
+              <small style="color:#666;display:block;margin-top:4px">${itemsText}</small>
+              <small style="color:#00cc66">Devolución: ${new Date(p.fecha_devolucion).toLocaleDateString()}</small>
+            </li>`;
+        }).join('');
+      } else {
+        prestamosList.innerHTML = '<li class="text-muted">Sin préstamos activos</li>';
+      }
     }
+  } catch (err) {
+    console.error("Error cargando préstamos:", err);
+  }
+  
+  // === NUEVO: CARGAR DEVOLUCIONES RECIENTES ===
+  try {
+    const { data: devoluciones } = await App.supabase
+      .from('prestamos')
+      .select('*')
+      .eq('estado', 'devuelto')
+      .order('fecha_confirmacion', { ascending: false })
+      .limit(5);
     
     const devolucionesList = document.getElementById('dashboard-devoluciones-list');
-    if (devolucionesList) devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones</li>';
-  } catch (err) { console.error("Error dashboard:", err); }
+    if (devolucionesList) {
+      if (devoluciones && devoluciones.length > 0) {
+        devolucionesList.innerHTML = devoluciones.map(d => {
+          const itemsText = d.items?.map(i => `${i.nombre} (x${i.cantidad})`).join(', ') || 'Sin items';
+          return `
+            <li class="activity-item">
+              <span class="time">${new Date(d.fecha_confirmacion).toLocaleDateString()}</span>
+              <strong>📥 ${d.nombre_solicitante}</strong>
+              <small style="color:#666;display:block;margin-top:4px">${itemsText}</small>
+              <small style="color:#28a745">✓ Devuelto</small>
+            </li>`;
+        }).join('');
+      } else {
+        devolucionesList.innerHTML = '<li class="text-muted">Sin devoluciones recientes</li>';
+      }
+    }
+  } catch (err) {
+    console.error("Error cargando devoluciones:", err);
+  }
 }
 
 async function loadBitacora() {
-  if (!App.supabase) return;
   try {
     const { data } = await App.supabase.from('bitacoras').select('*').order('fecha', { ascending: false });
     const tbody = document.getElementById('bitacora-body');
     if (!tbody) return;
-    tbody.innerHTML = data && data.length > 0 ? data.map(b => `
-      <tr><td>${new Date(b.fecha).toLocaleString()}</td><td>${b.nombre_usuario}</td><td>${b.titulo}</td><td>${b.categoria}</td><td>${b.actividad}</td><td>${App.isAdmin ? `<button class="btn-sm" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td></tr>
-    `).join('') : '<tr><td colspan="6">Sin registros</td></tr>';
-  } catch (err) { console.error("Error:", err); }
+    
+    if (data && data.length > 0) {
+      tbody.innerHTML = data.map(b => `
+        <tr>
+          <td>${new Date(b.fecha).toLocaleString()}</td>
+          <td>${b.nombre_usuario}</td>
+          <td>${b.titulo}</td>
+          <td>${b.categoria}</td>
+          <td>${b.actividad}</td>
+          <td>${App.isAdmin ? `<button class="btn-sm" onclick="deleteBitacora('${b.id}')">🗑️</button>` : '-'}</td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
+    }
+  } catch (err) {
+    console.error("Error loadBitacora:", err);
+  }
 }
 
 async function loadReportes() {
-  if (!App.supabase) return;
   try {
     const { data } = await App.supabase.from('reportes').select('*').order('created_at', { ascending: false });
     const container = document.getElementById('reportes-list');
     if (!container) return;
+    
     const colors = { alto: '#ff0040', medio: '#ffaa00', bajo: '#00ff88' };
-    container.innerHTML = data && data.length > 0 ? data.map(r => `
-      <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
-        <div class="report-header"><span class="report-urgencia" style="background:${colors[r.urgencia]}">${r.urgencia.toUpperCase()}</span><span>${r.estado}</span></div>
-        <h4>${r.titulo}</h4><p>${r.descripcion}</p>
-        ${App.isAdmin && r.estado !== 'cerrado' ? `<button class="btn-primary btn-sm" onclick="closeReport('${r.id}')">✅ Cerrar</button>` : ''}
-      </div>
-    `).join('') : '<p>Sin reportes</p>';
-  } catch (err) { console.error("Error:", err); }
-}
-
-// 🔍 LÓGICA DE FILTRADO DE INVENTARIO
-function filterInventory(searchTerm) {
-  const tbody = document.getElementById('inventory-body');
-  const noResults = document.getElementById('inventory-no-results');
-  if (!tbody) return;
-  
-  if (!searchTerm || searchTerm.trim() === '') {
-    renderInventoryTable(App.inventoryData);
-    if (noResults) noResults.hidden = true;
-    return;
+    
+    if (data && data.length > 0) {
+      container.innerHTML = data.map(r => `
+        <div class="report-card ${r.estado === 'cerrado' ? 'closed' : ''}">
+          <div class="report-header">
+            <span class="report-urgencia" style="background:${colors[r.urgencia]}">${r.urgencia.toUpperCase()}</span>
+            <span class="status status-${r.estado}">${r.estado}</span>
+          </div>
+          <h4>${r.titulo}</h4>
+          <p>${r.descripcion}</p>
+          <div class="report-meta">
+            <span>👤 ${r.nombre_usuario}</span>
+            <span>📁 ${r.categoria}</span>
+          </div>
+          ${App.isAdmin && r.estado !== 'cerrado' ? 
+            `<div class="report-actions"><button class="btn-primary btn-sm" onclick="closeReport('${r.id}')">✅ Cerrar</button></div>` : ''}
+        </div>
+      `).join('');
+    } else {
+      container.innerHTML = '<p>Sin reportes</p>';
+    }
+  } catch (err) {
+    console.error("Error loadReportes:", err);
   }
-  
-  const term = searchTerm.toLowerCase();
-  const filtered = App.inventoryData.filter(item => {
-    return (item.nombre || '').toLowerCase().includes(term) || 
-           (item.numero_serie || '').toLowerCase().includes(term) || 
-           (item.categoria || '').toLowerCase().includes(term) || 
-           (item.comentarios || '').toLowerCase().includes(term);
-  });
-  
-  if (filtered.length > 0) {
-    renderInventoryTable(filtered);
-    if (noResults) noResults.hidden = true;
-  } else {
-    tbody.innerHTML = '';
-    if (noResults) noResults.hidden = false;
-  }
-}
-
-function renderInventoryTable(data) {
-  const tbody = document.getElementById('inventory-body');
-  if (!tbody) return;
-  tbody.innerHTML = data && data.length > 0 ? data.map(i => `
-    <tr>
-      <td><code>${i.id}</code></td><td>${i.nombre}</td><td>${i.numero_serie || 'N/A'}</td><td>${i.cantidad}</td>
-      <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
-      <td><span class="status status-${i.estado}">${i.estado}</span></td>
-      <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm"></a>` : '-'}</td>
-      <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')"></button>` : '-'}</td>
-      <td><button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}</td>
-    </tr>
-  `).join('') : '<tr><td colspan="9">Sin registros</td></tr>';
 }
 
 async function loadInventory() {
-  if (!App.supabase) {
-    const tbody = document.getElementById('inventory-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="9">⚠️ Sin conexión</td></tr>';
-    return;
-  }
-  
   try {
     const { data } = await App.supabase.from('inventario').select('*');
-    App.inventoryData = data || [];
-    
-    const searchInput = document.getElementById('inventory-search');
-    const searchClear = document.getElementById('search-clear');
-    const noResults = document.getElementById('inventory-no-results');
-    
-    if (searchInput) searchInput.value = '';
-    if (searchClear) searchClear.hidden = true;
-    if (noResults) noResults.hidden = true;
-    
-    renderInventoryTable(App.inventoryData);
-  } catch (err) {
-    console.error("Error:", err);
     const tbody = document.getElementById('inventory-body');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="9">Error al cargar</td></tr>';
+    if (!tbody) return;
+    
+    if (data && data.length > 0) {
+      tbody.innerHTML = data.map(i => `
+        <tr>
+          <td><code>${i.id}</code></td>
+          <td>${i.nombre}</td>
+          <td>${i.numero_serie || 'N/A'}</td>
+          <td>${i.cantidad}</td>
+          <td><span class="status status-${i.funciona}">${i.funciona || 'desconocido'}</span></td>
+          <td><span class="status status-${i.estado}">${i.estado}</span></td>
+          <td>${i.datasheet ? `<a href="${i.datasheet}" target="_blank" class="btn-sm">📄 Ver</a>` : '-'}</td>
+          <td>${i.comentarios ? `<button class="btn-sm" onclick="viewComments('${(i.comentarios||'').replace(/'/g, "\\'")}')">💬 Ver</button>` : '-'}</td>
+          <td>
+            <button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>
+            ${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}
+          </td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="10">Sin registros</td></tr>';
+    }
+  } catch (err) {
+    console.error("Error loadInventory:", err);
   }
 }
 
 async function loadMembers() {
-  if (!App.supabase) return;
   try {
     const { data } = await App.supabase.from('usuarios').select('*').order('username');
     const tbody = document.getElementById('miembros-body');
     if (!tbody) return;
-    tbody.innerHTML = data && data.length > 0 ? data.map(m => `
-      <tr><td>${m.id}</td><td>@${m.username}</td><td>${m.nombre_completo || '-'}</td><td>${m.rol}</td><td>${m.area || '-'}</td>
-      <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">️</button>` : ''}</td></tr>
-    `).join('') : '<tr><td colspan="6">Sin registros</td></tr>';
-  } catch (err) { console.error("Error:", err); }
+    
+    if (data && data.length > 0) {
+      tbody.innerHTML = data.map(m => `
+        <tr>
+          <td>${m.id}</td>
+          <td>@${m.username}</td>
+          <td>${m.nombre_completo || '-'}</td>
+          <td><span class="role-badge ${m.rol === 'administrador' ? 'admin' : ''}">${m.rol}</span></td>
+          <td>${m.area || '-'}</td>
+          <td>${App.isAdmin && m.username !== 'luis' && m.username !== 'sixto' ? 
+            `<button class="btn-sm" onclick="deleteMember('${m.username}')" style="color:#ff0040">🗑️</button>` : '🔒'}</td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
+    }
+  } catch (err) {
+    console.error("Error loadMembers:", err);
+  }
 }
 
 window.addPrestamoItem = async function() {
   const container = document.getElementById('prestamo-items-container');
   const newRow = document.createElement('div');
   newRow.className = 'prestamo-item-row';
-  newRow.innerHTML = `<select class="prestamo-item-select" required><option value="">Cargando...</option></select><input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required><button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>`;
+  newRow.innerHTML = `
+    <select class="prestamo-item-select" required>
+      <option value="">Cargando...</option>
+    </select>
+    <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
+    <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
+  `;
   container.appendChild(newRow);
+  
   await loadPrestamoItems(newRow.querySelector('.prestamo-item-select'));
 };
 
 window.removePrestamoItem = function(btn) {
   const rows = document.querySelectorAll('.prestamo-item-row');
-  if (rows.length > 1) btn.parentElement.remove();
-  else showToast('Debe haber al menos un item', 'warning');
+  if (rows.length > 1) {
+    btn.parentElement.remove();
+  } else {
+    showToast('Debe haber al menos un item', 'warning');
+  }
 };
 
 async function loadPrestamoItems(selectElement) {
-  if (!App.supabase) return;
   try {
-    const { data } = await App.supabase.from('inventario').select('id, nombre, cantidad').gt('cantidad', 0);
+    const { data } = await App.supabase
+      .from('inventario')
+      .select('id, nombre, cantidad')
+      .gt('cantidad', 0);
+    
     if (data && data.length > 0) {
-      selectElement.innerHTML = '<option value="">Seleccionar...</option>' + data.map(item => `<option value="${item.id}">${item.nombre} (${item.cantidad})</option>`).join('');
+      selectElement.innerHTML = '<option value="">Seleccionar item...</option>' + 
+        data.map(item => `<option value="${item.id}" data-stock="${item.cantidad}">${item.nombre} (Disp: ${item.cantidad})</option>`).join('');
     } else {
-      selectElement.innerHTML = '<option value="">Sin items</option>';
+      selectElement.innerHTML = '<option value="">Sin items disponibles</option>';
     }
   } catch (err) {
-    selectElement.innerHTML = '<option value="">Error</option>';
+    console.error("Error cargando items:", err);
+    selectElement.innerHTML = '<option value="">Error al cargar</option>';
   }
 }
 
 window.authorizeLoan = async function(loanId, authorize) {
-  if (!App.supabase || !confirm(`${authorize ? '¿AUTORIZAR' : '¿DENEGAR'}?`)) return;
+  if (!confirm(`${authorize ? 'AUTORIZAR' : 'DENEGAR'} este préstamo?`)) return;
+  
   try {
     if (authorize) {
-      const { data: prestamo } = await App.supabase.from('prestamos').select('items').eq('id', loanId).single();
+      const { data: prestamo } = await App.supabase
+        .from('prestamos')
+        .select('items')
+        .eq('id', loanId)
+        .single();
+      
       for (let item of prestamo.items) {
-        await App.supabase.rpc('descontar_stock', { p_item_id: item.item_id, p_cantidad: item.cantidad });
+        await App.supabase.rpc('descontar_stock', {
+          p_item_id: item.item_id,
+          p_cantidad: item.cantidad
+        });
       }
-      await App.supabase.from('prestamos').update({ estado: 'autorizado', autorizado_por: App.user.id, fecha_autorizacion: new Date().toISOString() }).eq('id', loanId);
-      showToast('✅ Autorizado', 'success');
+      
+      await App.supabase.from('prestamos').update({
+        estado: 'autorizado',
+        autorizado_por: App.user.id,
+        fecha_autorizacion: new Date().toISOString()
+      }).eq('id', loanId);
+      
+      showToast('✅ Préstamo autorizado', 'success');
     } else {
-      await App.supabase.from('prestamos').update({ estado: 'denegado' }).eq('id', loanId);
-      showToast('❌ Denegado', 'success');
+      await App.supabase.from('prestamos').update({
+        estado: 'denegado',
+        autorizado_por: App.user.id,
+        fecha_autorizacion: new Date().toISOString()
+      }).eq('id', loanId);
+      
+      showToast('❌ Préstamo denegado', 'success');
     }
-    loadPrestamos(); loadDashboard();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    
+    loadPrestamos();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 window.requestReturn = async function(loanId) {
-  if (!App.supabase || !confirm('¿Solicitar devolución?')) return;
+  if (!confirm('¿Solicitar devolución de este préstamo?')) return;
+  
   try {
-    await App.supabase.from('prestamos').update({ estado: 'devolucion_pendiente' }).eq('id', loanId);
-    showToast('📋 Devolución solicitada', 'success');
+    await App.supabase.from('prestamos').update({
+      estado: 'devolucion_pendiente',
+      fecha_devolucion_real: new Date().toISOString()
+    }).eq('id', loanId);
+    
+    showToast('📋 Devolución solicitada. Espera confirmación del administrador', 'success');
     loadPrestamos();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 window.confirmReturn = async function(loanId) {
-  if (!App.supabase || !confirm('¿Confirmar devolución?')) return;
+  if (!confirm('¿Confirmar que los items fueron devueltos en buen estado?')) return;
+  
   try {
-    const { data: prestamo } = await App.supabase.from('prestamos').select('items').eq('id', loanId).single();
+    const { data: prestamo } = await App.supabase
+      .from('prestamos')
+      .select('items')
+      .eq('id', loanId)
+      .single();
+    
     for (let item of prestamo.items) {
-      await App.supabase.rpc('regresar_stock', { p_item_id: item.item_id, p_cantidad: item.cantidad });
+      await App.supabase.rpc('regresar_stock', {
+        p_item_id: item.item_id,
+        p_cantidad: item.cantidad
+      });
     }
-    await App.supabase.from('prestamos').update({ estado: 'devuelto', confirmado_por: App.user.id, fecha_confirmacion: new Date().toISOString() }).eq('id', loanId);
+    
+    await App.supabase.from('prestamos').update({
+      estado: 'devuelto',
+      confirmado_por: App.user.id,
+      fecha_confirmacion: new Date().toISOString()
+    }).eq('id', loanId);
+    
     showToast('✅ Devolución confirmada', 'success');
-    loadPrestamos(); loadInventory(); loadDashboard();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    loadPrestamos();
+    loadInventory();
+    loadDashboard();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 async function loadPrestamos() {
-  if (!App.supabase) return;
   try {
-    const itemSelects = document.querySelectorAll('.prestamo-item-select');
-    for (let select of itemSelects) await loadPrestamoItems(select);
+    console.log("🔄 Cargando préstamos...");
     
-    let query = App.isAdmin ? App.supabase.from('prestamos').select('*') : App.supabase.from('prestamos').select('*').eq('usuario_id', App.user.id);
+    const itemSelects = document.querySelectorAll('.prestamo-item-select');
+    for (let select of itemSelects) {
+      await loadPrestamoItems(select);
+    }
+    
+    let query;
+    if (App.isAdmin) {
+      query = App.supabase.from('prestamos').select('*');
+    } else {
+      query = App.supabase.from('prestamos').select('*').eq('usuario_id', App.user.id);
+    }
+    
     const { data } = await query.order('created_at', { ascending: false });
     
     const tbody = document.getElementById('prestamos-body');
     const pendientesBody = document.getElementById('prestamos-pendientes-body');
     const pendientesSection = document.getElementById('prestamos-pendientes-section');
     
-    if (tbody && data) {
-      const misPrestamos = data.filter(p => App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente');
-      tbody.innerHTML = misPrestamos.length > 0 ? misPrestamos.map(l => {
-        const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
-        let acciones = l.estado === 'autorizado' ? `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Devolver</button>` : (l.estado === 'devolucion_pendiente' ? '<span>⏳ Pendiente</span>' : '');
-        return `<tr><td><code>${l.id}</code></td><td>${itemsList}</td><td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td><td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td><td>${l.estado}</td><td>${acciones}</td></tr>`;
-      }).join('') : '<tr><td colspan="6">Sin préstamos</td></tr>';
+    if (tbody) {
+      if (data && data.length > 0) {
+        const misPrestamos = data.filter(p => 
+          App.isAdmin || p.estado === 'autorizado' || p.estado === 'devolucion_pendiente'
+        );
+        
+        tbody.innerHTML = misPrestamos.map(l => {
+          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+          let acciones = '';
+          
+          if (l.estado === 'autorizado') {
+            acciones = `<button class="btn-sm" onclick="requestReturn('${l.id}')">🔄 Solicitar Devolución</button>`;
+          } else if (l.estado === 'devolucion_pendiente') {
+            acciones = '<span class="status status-pendiente">⏳ Esperando confirmación</span>';
+          }
+          
+          return `
+            <tr>
+              <td><code>${l.id}</code></td>
+              <td>${itemsList}</td>
+              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+              <td><span class="status status-${l.estado}">${l.estado}</span></td>
+              <td>${acciones}</td>
+            </tr>
+          `;
+        }).join('');
+        
+        if (misPrestamos.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6">Sin préstamos activos</td></tr>';
+        }
+      } else {
+        tbody.innerHTML = '<tr><td colspan="6">Sin préstamos</td></tr>';
+      }
     }
     
     if (App.isAdmin && pendientesBody && pendientesSection) {
       const pendientes = data.filter(p => p.estado === 'pendiente');
+      
       if (pendientes.length > 0) {
         pendientesSection.hidden = false;
-        pendientesBody.innerHTML = pendientes.map(l => `<tr><td>${l.id}</td><td>${l.nombre_solicitante}</td><td>${l.items.map(i => i.nombre).join(', ')}</td><td colspan="3"><button class="btn-sm" onclick="authorizeLoan('${l.id}', true)">✅</button><button class="btn-sm" onclick="authorizeLoan('${l.id}', false)">❌</button></td></tr>`).join('');
+        pendientesBody.innerHTML = pendientes.map(l => {
+          const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+          return `
+            <tr>
+              <td><code>${l.id}</code></td>
+              <td>${l.nombre_solicitante}</td>
+              <td>${itemsList}</td>
+              <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+              <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+              <td>
+                <button class="btn-sm btn-success" onclick="authorizeLoan('${l.id}', true)">✅ Autorizar</button>
+                <button class="btn-sm btn-danger" onclick="authorizeLoan('${l.id}', false)">❌ Denegar</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
       } else {
         pendientesSection.hidden = true;
       }
     }
-  } catch (err) { console.error("Error:", err); }
+    
+    if (App.isAdmin && tbody) {
+      const devolucionesPendientes = data.filter(p => p.estado === 'devolucion_pendiente');
+      
+      devolucionesPendientes.forEach(l => {
+        const row = document.createElement('tr');
+        const itemsList = l.items.map(i => `${i.nombre} (x${i.cantidad})`).join(', ');
+        row.innerHTML = `
+          <td><code>${l.id}</code></td>
+          <td>${itemsList}</td>
+          <td>${new Date(l.fecha_prestamo).toLocaleDateString()}</td>
+          <td>${new Date(l.fecha_devolucion).toLocaleDateString()}</td>
+          <td><span class="status status-devolucion_pendiente">⏳ Devolución Pendiente</span></td>
+          <td><button class="btn-sm btn-success" onclick="confirmReturn('${l.id}')">✅ Confirmar Devolución</button></td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+    
+  } catch (err) {
+    console.error("Error loadPrestamos:", err);
+  }
 }
 
 window.editItem = async function(id) {
-  if (!App.supabase || !id) return showToast('Error', 'error');
+  console.log("✏️ Editando ID:", id);
+  
+  if (!id) {
+    return showToast('Error: ID no válido', 'error');
+  }
+  
   try {
-    const { data: item } = await App.supabase.from('inventario').select('*').eq('id', id).single();
-    if (!item) return showToast('No encontrado', 'error');
+    const { data: item, error } = await App.supabase
+      .from('inventario')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error || !item) {
+      console.error("❌ Error al buscar:", error);
+      return showToast('Item no encontrado', 'error');
+    }
     
     const modal = document.getElementById('item-modal');
-    document.getElementById('modal-title').textContent = '✏️ Editar';
+    if (!modal) return showToast('Modal no encontrado', 'error');
+    
+    document.getElementById('modal-title').textContent = '✏️ Editar: ' + item.nombre;
     document.getElementById('item-id').value = item.id;
     document.getElementById('item-nombre').value = item.nombre || '';
     document.getElementById('item-serie').value = item.numero_serie || '';
@@ -674,49 +896,73 @@ window.editItem = async function(id) {
     document.getElementById('item-foto').value = item.foto_url || '';
     document.getElementById('item-error').textContent = '';
     
-    if (modal) { modal.classList.remove('hidden'); modal.style.display = 'flex'; }
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+    console.log("✅ Modal abierto");
+  } catch (err) {
+    console.error("Error editItem:", err);
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 window.viewComments = function(txt) {
-  alert(txt || 'Sin comentarios');
+  if (txt && txt.trim()) alert('📝 COMENTARIOS:\n\n' + txt);
+  else showToast('Sin comentarios', 'info');
 };
 
 window.deleteItem = async function(id) {
-  if (!App.supabase || !confirm('¿Eliminar?')) return;
+  if (!confirm('¿Eliminar?')) return;
   try {
-    await App.supabase.from('inventario').delete().eq('id', id);
+    const { error } = await App.supabase.from('inventario').delete().eq('id', id);
+    if (error) throw error;
     showToast('🗑️ Eliminado', 'success');
     loadInventory();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 window.deleteBitacora = async function(id) {
-  if (!App.supabase || !confirm('¿Eliminar?')) return;
+  if (!confirm('¿Eliminar?')) return;
   try {
     await App.supabase.from('bitacoras').delete().eq('id', id);
     showToast('🗑️ Eliminado', 'success');
     loadBitacora();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 window.deleteMember = async function(username) {
-  if (!App.supabase || !confirm(`¿Eliminar ${username}?`) || username === 'luis' || username === 'sixto') return;
+  if (!confirm(`¿Eliminar a ${username}?`)) return;
+  if (username === 'luis' || username === 'sixto') return showToast('🔒 No puedes eliminar admins', 'error');
   try {
     await App.supabase.from('usuarios').delete().eq('username', username);
     showToast('🗑️ Eliminado', 'success');
     loadMembers();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
 
 window.closeReport = async function(id) {
-  if (!App.supabase) return;
   try {
     await App.supabase.from('reportes').update({ estado: 'cerrado' }).eq('id', id);
     showToast('✅ Cerrado', 'success');
     loadReportes();
-  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
 };
+
+function inferCategory(n) {
+  n = n.toLowerCase();
+  if (n.includes('sensor')) return 'sensores';
+  if (n.includes('plc') || n.includes('variador') || n.includes('fuente') || n.includes('interruptor') || n.includes('switch')) return 'electronica';
+  if (n.includes('piston') || n.includes('cilindro') || n.includes('neumatico')) return 'mecanica';
+  if (n.includes('guante') || n.includes('cable') || n.includes('herramienta')) return 'herramientas';
+  return 'otros';
+}
 
 function showToast(msg, type = 'info') {
   const d = document.createElement('div');
