@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>CHAK' MO'OL | Club de Robótica</title>
   
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -12,14 +12,12 @@
 </head>
 <body>
 
-  <!-- LOADER DESHABILITADO -->
-  <div id="loading-overlay" class="loading-overlay" style="display: none !important;">
+  <div id="loading-overlay" class="loading-overlay">
     <div class="loader"></div>
     <p>Conectando con CHAK' MO'OL Core...</p>
   </div>
 
-  <!-- LOGIN VISIBLE POR DEFECTO -->
-  <section id="login-section" class="auth-section" style="display: flex;">
+  <section id="login-section" class="auth-section" style="display: none;">
     <div class="auth-container">
       <header class="auth-header">
         <h1 class="logo-title">CHAK' MO'OL</h1>
@@ -29,11 +27,11 @@
       <form id="login-form" class="auth-form">
         <div class="form-group">
           <label>Usuario</label>
-          <input type="text" id="username" required autocomplete="username">
+          <input type="text" id="username" required>
         </div>
         <div class="form-group">
           <label>Contraseña</label>
-          <input type="password" id="password" required autocomplete="current-password">
+          <input type="password" id="password" required>
         </div>
         <div id="login-error" class="error-message"></div>
         <button type="submit" class="btn-primary btn-full">⚡ ACCEDER</button>
@@ -44,7 +42,7 @@
   <section id="app-section" class="app-section" style="display: none;">
     <header class="main-header">
       <div class="header-left">
-        <button id="menu-toggle" class="menu-btn" aria-label="Menú">☰</button>
+        <button id="menu-toggle" class="menu-btn">☰</button>
         <div class="brand">
           <h2>CHAK' MO'OL <span class="badge">PRO</span></h2>
           <p class="tagline">EL PODER DE IR MÁS ALLÁ</p>
@@ -86,7 +84,7 @@
           <h3>📋 Actividad Reciente</h3>
           <div class="activity-grid">
             <div class="activity-column"><h4>📝 Bitácora</h4><ul id="dashboard-bitacora-list" class="activity-list"></ul></div>
-            <div class="activity-column"><h4> Reportes</h4><ul id="dashboard-reportes-list" class="activity-list"></ul></div>
+            <div class="activity-column"><h4>🚨 Reportes</h4><ul id="dashboard-reportes-list" class="activity-list"></ul></div>
           </div>
         </div>
 
@@ -107,12 +105,6 @@
 
       <div id="view-inventario" class="view" hidden>
         <h2 class="view-title">📦 Gestión de Inventario</h2>
-        
-        <div class="inventory-search">
-          <input type="search" id="inventory-search" placeholder="🔍 Buscar por nombre, serie, categoría o comentario..." autocomplete="off">
-          <button id="search-clear" class="btn-secondary btn-sm" hidden>✕</button>
-        </div>
-        
         <div class="inventory-actions">
           <button id="btn-export-excel" class="btn-secondary">📥 Exportar</button>
           <button id="btn-add-item" class="btn-primary" style="margin-left:auto;">+ Nuevo</button>
@@ -134,15 +126,11 @@
             </thead>
             <tbody id="inventory-body"></tbody>
           </table>
-          <div id="inventory-no-results" class="no-results" hidden>
-            <p>⚠️ No se encontraron resultados para tu búsqueda</p>
-            <button id="search-reset" class="btn-secondary btn-sm">Limpiar búsqueda</button>
-          </div>
         </div>
 
         <div id="item-modal" class="modal" hidden>
           <div class="modal-content">
-            <button class="modal-close" aria-label="Cerrar">&times;</button>
+            <button class="modal-close">&times;</button>
             <h3 id="modal-title">Equipo</h3>
             <form id="item-form">
               <input type="hidden" id="item-id">
@@ -152,7 +140,7 @@
               </div>
               <div class="form-row">
                 <div class="form-group"><label>N° Serie</label><input type="text" id="item-serie"></div>
-                <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1" min="1"></div>
+                <div class="form-group"><label>Cantidad</label><input type="number" id="item-cantidad" value="1"></div>
               </div>
               <div class="form-row">
                 <div class="form-group">
@@ -264,7 +252,7 @@
                   <option value="">Seleccionar item...</option>
                 </select>
                 <input type="number" class="prestamo-cantidad" placeholder="Cant." min="1" value="1" required>
-                <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)" aria-label="Eliminar">🗑️</button>
+                <button type="button" class="btn-remove-item" onclick="removePrestamoItem(this)">🗑️</button>
               </div>
             </div>
             <button type="button" class="btn-secondary btn-sm" onclick="addPrestamoItem()" style="margin-top: 10px;">+ Agregar otro item</button>
@@ -349,7 +337,7 @@
               <select id="reporte-urgencia" required>
                 <option value="bajo">🟢 Bajo</option>
                 <option value="medio">🟡 Medio</option>
-                <option value="alto"> Alto</option>
+                <option value="alto">🔴 Alto</option>
               </select>
             </div>
           </div>
