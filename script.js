@@ -53,7 +53,7 @@ function setupEvents() {
     document.getElementById('login-section').style.display = 'flex';
   });
 
-  // === NUEVO: BOTÓN MENÚ HAMBURGUESA (MÓVIL) ===
+  // === BOTÓN MENÚ HAMBURGUESA (MÓVIL) ===
   document.getElementById('menu-toggle')?.addEventListener('click', (e) => {
     e.stopPropagation();
     const sidebar = document.getElementById('sidebar');
@@ -62,7 +62,7 @@ function setupEvents() {
     }
   });
 
-  // === NUEVO: CERRAR SIDEBAR AL HACER CLIC FUERA (MÓVIL) ===
+  // === CERRAR SIDEBAR AL HACER CLIC FUERA (MÓVIL) ===
   document.addEventListener('click', (e) => {
     const sidebar = document.getElementById('sidebar');
     const menuBtn = document.getElementById('menu-toggle');
@@ -73,6 +73,7 @@ function setupEvents() {
     }
   });
   
+  // === NAV ITEMS - UN SOLO EVENT LISTENER ===
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const view = e.currentTarget.dataset.view;
@@ -86,7 +87,7 @@ function setupEvents() {
       if (target) { target.classList.add('active'); target.hidden = false; }
       e.currentTarget.classList.add('active');
       
-      // === NUEVO: CERRAR SIDEBAR EN MÓVIL AL SELECCIONAR OPCIÓN ===
+      // CERRAR SIDEBAR EN MÓVIL AL SELECCIONAR OPCIÓN
       if (window.innerWidth < 1024) {
         const sidebar = document.getElementById('sidebar');
         if (sidebar) sidebar.classList.remove('open');
@@ -361,11 +362,10 @@ function updateAdminUI() {
   document.querySelectorAll('.admin-only').forEach(el => el.hidden = !App.isAdmin);
 }
 
-// === DASHBOARD - MANTIENE BITÁCORA Y REPORTES ORIGINALES + AGREGA PRÉSTAMOS ===
+// === DASHBOARD ===
 async function loadDashboard() {
   if (!App.supabase) return;
   
-  // Cargar estadísticas
   const { count: inv } = await App.supabase.from('inventario').select('*', { count: 'exact', head: true });
   const { count: mem } = await App.supabase.from('usuarios').select('*', { count: 'exact', head: true });
   const { count: rep } = await App.supabase.from('reportes').select('*', { count: 'exact', head: true }).eq('estado', 'abierto');
@@ -374,7 +374,6 @@ async function loadDashboard() {
   document.getElementById('stat-members').textContent = mem || 0;
   document.getElementById('stat-reports').textContent = rep || 0;
   
-  // === CARGAR BITÁCORAS RECIENTES PARA DASHBOARD (ORIGINAL - SIN CAMBIOS) ===
   try {
     const { data: bits, error: bitError } = await App.supabase
       .from('bitacoras')
@@ -404,7 +403,6 @@ async function loadDashboard() {
     if (bitList) bitList.innerHTML = '<li class="text-muted">Error al cargar</li>';
   }
   
-  // === CARGAR REPORTES RECIENTES PARA DASHBOARD (ORIGINAL - SIN CAMBIOS) ===
   try {
     const { data: reps, error: repError } = await App.supabase
       .from('reportes')
@@ -437,7 +435,6 @@ async function loadDashboard() {
     if (repList) repList.innerHTML = '<li class="text-muted">Error al cargar</li>';
   }
   
-  // === NUEVO: CARGAR PRÉSTAMOS RECIENTES ===
   try {
     const { count: loans } = await App.supabase
       .from('prestamos')
@@ -473,7 +470,6 @@ async function loadDashboard() {
     console.error("Error cargando préstamos:", err);
   }
   
-  // === NUEVO: CARGAR DEVOLUCIONES RECIENTES ===
   try {
     const { data: devoluciones } = await App.supabase
       .from('prestamos')
