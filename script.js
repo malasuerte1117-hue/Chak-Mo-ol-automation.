@@ -53,15 +53,6 @@ function setupEvents() {
     document.getElementById('login-section').style.display = 'flex';
   });
   
-  // ✅ CORRECCIÓN: Event listener para el menú hamburguesa en móvil
-  document.getElementById('menu-toggle')?.addEventListener('click', () => {
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar) {
-      sidebar.classList.toggle('open');
-    }
-  });
-  
-  // ✅ Cerrar sidebar al hacer clic en un nav-item en móvil
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const view = e.currentTarget.dataset.view;
@@ -75,18 +66,18 @@ function setupEvents() {
       if (target) { target.classList.add('active'); target.hidden = false; }
       e.currentTarget.classList.add('active');
       
-      // ✅ Cerrar sidebar automáticamente al seleccionar una opción en móvil
-      const sidebar = document.getElementById('sidebar');
-      if (sidebar && window.innerWidth < 1024) {
-        sidebar.classList.remove('open');
-      }
-      
       if (view === 'dashboard') loadDashboard();
       if (view === 'inventario') loadInventory();
       if (view === 'bitacora') loadBitacora();
       if (view === 'reportes') loadReportes();
       if (view === 'miembros' && App.isAdmin) loadMembers();
       if (view === 'prestamos' && App.isAdmin) loadPrestamos();
+      
+      // Cerrar menú móvil al seleccionar una opción
+      if (window.innerWidth < 1024) {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.remove('open');
+      }
     });
   });
   
@@ -511,7 +502,7 @@ async function loadBitacora() {
         </tr>
       `).join('');
     } else {
-      tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>';
+      tbody.innerHTML = '<td><td colspan="6">Sin registros</td></tr>';
     }
   } catch (err) {
     console.error("Error loadBitacora:", err);
@@ -571,7 +562,7 @@ async function loadInventory() {
           <td>
             <button class="btn-sm" onclick="editItem('${i.id}')">✏️</button>
             ${App.isAdmin ? `<button class="btn-sm" onclick="deleteItem('${i.id}')" style="color:#ff0040">🗑️</button>` : ''}
-          </td>
+           </td>
         </tr>
       `).join('');
     } else {
@@ -960,3 +951,30 @@ function showToast(msg, type = 'info') {
   document.body.appendChild(d);
   setTimeout(() => d.remove(), 3000);
 }
+
+// ============================================
+// === MENÚ MÓVIL - FUNCIONALIDAD DE LAS 3 LÍNEAS ===
+// ============================================
+
+// Activar el botón de menú ☰
+document.getElementById('menu-toggle')?.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+    }
+});
+
+// Cerrar menú al hacer clic fuera de él (solo en móviles)
+document.addEventListener('click', function(e) {
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menu-toggle');
+    
+    // Solo en móviles (cuando el sidebar está en modo overlay)
+    if (window.innerWidth < 1024 && sidebar && sidebar.classList.contains('open')) {
+        // Si el clic no fue en el botón del menú ni en el sidebar
+        if (!menuBtn?.contains(e.target) && !sidebar.contains(e.target)) {
+            sidebar.classList.remove('open');
+        }
+    }
+});
